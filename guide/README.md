@@ -107,6 +107,7 @@ is updated. Mechanics claims anywhere in the tree cite the oracle,
 | [Quiz](../quiz/README.md) | 123 oracle-grounded questions in nine topic files, schema-validated in CI | Complete |
 | `machine-readable/` | Generated `reference.yaml` for LLM consumption, plus the translations registry | Complete |
 | `examples/` | Installable templates: agents, skills, hooks, commands | Complete |
+| `tools/` | The personalized onboarding prompt ([tools/onboarding-prompt.md](../tools/onboarding-prompt.md)), routed from the index's `onboarding:` section | Complete |
 | `mcp-server/` | npm MCP server serving the guide pages and the reference index as tools; MIT code, CC BY-SA content | Complete (publishing pending) |
 | [Monolith Spine](vibe-guide.md) | The delegation-only chapter map, generated | Complete |
 

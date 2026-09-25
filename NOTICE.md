@@ -31,6 +31,9 @@ attribution:
   pages; slow-theory / fast-inventory split; per-chapter TL;DR routing).
 - Workflow methodology and step patterns.
 - The learning-path module structure.
+- The personalized onboarding prompt (`tools/onboarding-prompt.md`): the
+  phase structure, profiling questions, depth-control pattern, and the
+  embedded fallback roadmap derive from the source's `tools/onboarding-prompt.md`.
 - Quiz schema, machine-readable index schema, and build-pipeline patterns.
 
 All mechanics (commands, flags, configuration keys, file formats, wire protocols)

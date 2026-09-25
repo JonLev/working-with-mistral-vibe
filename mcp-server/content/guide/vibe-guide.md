@@ -239,7 +239,7 @@ English is the only maintained edition; community adaptations are listed under a
 
 ## About this guide
 
-Guide version 0.1.0. Structure and pedagogy adapted from the
+Guide version 0.2.0. Structure and pedagogy adapted from the
 community guide by Florian Bruniaux (CC BY-SA 4.0); mechanics rewritten
 and independently verified against Mistral's Vibe products from public
 sources — see [`NOTICE.md`](../NOTICE.md) for the license split and the

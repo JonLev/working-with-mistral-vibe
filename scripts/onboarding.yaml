@@ -1,0 +1,229 @@
+# scripts/onboarding.yaml — routing spec for the personalized onboarding prompt
+# (tools/onboarding-prompt.md).
+#
+# Hand-maintained INPUT to scripts/generate-reference.py, which validates every
+# route stop (page exists, anchor resolves to a real heading) and embeds the
+# result as the `onboarding:` section of machine-readable/reference.yaml.
+# Editing the routes means editing this file and regenerating; the drift gate
+# then fails until reference.yaml is regenerated, and a bad route fails the
+# generator outright.
+#
+# Design notes:
+# - Goals and tracks reuse the guide's own taxonomies: the tracks are the
+#   learning-path tracks (Beginner / Practitioner / Production / Maintainer),
+#   the goals map to guide areas. Nothing here invents mechanics; stops are
+#   routing, `focus` lines are navigation text, not claims.
+# - A route is goal -> track -> ordered stops. `all` applies to every track;
+#   explicit track keys override it. Every goal must resolve for every track.
+# - `anchor` values are GitHub-style heading slugs, validated at generation.
+
+golden_rules:
+  page: "guide/cheatsheet.md"
+  anchor: "the-golden-rules"
+
+goals:
+  - id: "get_started"
+    label: "Get started"
+    ask: "New to the Vibe CLI; learn the essentials quickly"
+  - id: "optimize"
+    label: "Optimize"
+    ask: "Using the CLI already; improve an existing workflow"
+  - id: "build_agents"
+    label: "Build agents and skills"
+    ask: "Create custom agents, skills, and hooks"
+  - id: "learn_security"
+    label: "Security and production safety"
+    ask: "Harden a setup, adopt for production"
+  - id: "migrate_in"
+    label: "Migrate from another agentic CLI"
+    ask: "Arrive from a different tool; map what you know"
+  - id: "adopt_team"
+    label: "Adopt with a team"
+    ask: "Roll out agentic coding to a team, with metrics and guardrails"
+  - id: "fix_problem"
+    label: "Fix a problem"
+    ask: "Troubleshoot a specific issue right now"
+  - id: "learn_everything"
+    label: "Learn everything"
+    ask: "Complete guided tour of the guide"
+
+tracks:
+  - id: "beginner"
+    label: "Beginner"
+    entry: "Day 1 with the Vibe CLI"
+  - id: "practitioner"
+    label: "Practitioner"
+    entry: "Using the CLI 1-4 weeks"
+  - id: "production"
+    label: "Production"
+    entry: "Running the CLI on real repositories, or for a team"
+  - id: "maintainer"
+    label: "Maintainer"
+    entry: "Own the team's Vibe configuration"
+
+routes:
+  get_started:
+    all:
+      - page: "guide/learning-path/01-installation.md"
+        focus: "Install, folder-trust, first session, the diff-review habit"
+      - page: "guide/learning-path/02-core-loop.md"
+        focus: "The seven-step loop every session follows"
+      - page: "guide/learning-path/03-memory.md"
+        focus: "AGENTS.md and config.toml basics"
+      - page: "guide/cheatsheet.md"
+        focus: "The one-page daily reference"
+  optimize:
+    all:
+      - page: "guide/core/context-engineering.md"
+        focus: "Context as a budget; scoped files and rule placement"
+      - page: "guide/core/memory-systems.md"
+        focus: "Instruction precedence and when memory should grow"
+      - page: "guide/core/settings-reference.md"
+        focus: "The config keys that change day-to-day behavior"
+      - page: "guide/workflows/iterative-refinement.md"
+        focus: "Refine output in passes instead of one giant prompt"
+      - page: "guide/workflows/best-of-n.md"
+        focus: "Generate N candidates, pick with verification"
+  build_agents:
+    all:
+      - page: "guide/learning-path/04-agents.md"
+        focus: "Agents as TOML profiles; the task tool"
+      - page: "guide/learning-path/05-skills.md"
+        focus: "Reusable capabilities in SKILL.md"
+      - page: "guide/learning-path/06-hooks.md"
+        focus: "Event automation in hooks.toml"
+      - page: "guide/core/agents-and-skills-reference.md"
+        focus: "Frontmatter catalogs for both"
+      - page: "guide/core/skill-design-patterns.md"
+        focus: "What makes a skill load well"
+      - page: "guide/core/hooks-events-reference.md"
+        focus: "The hook events and their wire protocol"
+      - page: "examples/README.md"
+        focus: "Installable templates to copy from"
+  learn_security:
+    all:
+      - page: "guide/security/security-hardening.md"
+        focus: "Threat model, trust gate, hooks as guards, MCP vetting"
+      - page: "guide/security/production-safety.md"
+        focus: "Safe defaults and blast-radius control in production"
+      - page: "guide/security/data-privacy.md"
+        focus: "What is sent where, and the knobs that control it"
+      - page: "guide/workflows/production-reliability.md"
+        focus: "The workflow that keeps production runs bounded"
+  migrate_in:
+    all:
+      - page: "guide/surfaces/migrating-from-claude-code.md"
+        focus: "Feature-surface mapping into Vibe terms"
+      - page: "guide/cheatsheet.md"
+        focus: "The verified command surface on one page"
+      - page: "guide/core/memory-systems.md"
+        focus: "AGENTS.md vs the memory files you know"
+  adopt_team:
+    all:
+      - page: "guide/roles/adoption-approaches.md"
+        focus: "Starting points and the decision tree for teams"
+      - page: "guide/ops/team-metrics.md"
+        focus: "Measuring adoption without gaming it"
+      - page: "guide/ops/observability.md"
+        focus: "Seeing what sessions actually do"
+      - page: "guide/ops/automation.md"
+        focus: "Headless CI runs and scheduled loops, with budgets"
+      - page: "guide/ops/ai-traceability.md"
+        focus: "Attributing change to human or agent"
+  fix_problem:
+    all:
+      - page: "guide/cheatsheet.md"
+        anchor: "common-issues-quick-fix"
+        focus: "Symptom-to-fix table for the usual failures"
+      - page: "guide/core/glossary.md"
+        focus: "Terminology when the docs and the tool disagree"
+      - page: "guide/releases.md"
+        focus: "Release tracking when behavior changed under you"
+  learn_everything:
+    beginner:
+      - page: "guide/learning-path/README.md"
+        focus: "The seven-module curriculum and its tracks"
+      - page: "guide/learning-path/01-installation.md"
+        focus: "Module 01"
+      - page: "guide/learning-path/02-core-loop.md"
+        focus: "Module 02"
+      - page: "guide/learning-path/03-memory.md"
+        focus: "Module 03"
+      - page: "guide/learning-path/04-agents.md"
+        focus: "Module 04"
+      - page: "guide/learning-path/05-skills.md"
+        focus: "Module 05"
+      - page: "guide/learning-path/06-hooks.md"
+        focus: "Module 06"
+      - page: "guide/learning-path/07-advanced.md"
+        focus: "Module 07"
+    practitioner:
+      - page: "guide/learning-path/04-agents.md"
+        focus: "Module 04"
+      - page: "guide/learning-path/05-skills.md"
+        focus: "Module 05"
+      - page: "guide/learning-path/06-hooks.md"
+        focus: "Module 06"
+      - page: "guide/learning-path/07-advanced.md"
+        focus: "Module 07"
+      - page: "guide/workflows/README.md"
+        focus: "The ten workflows, pick by problem"
+    production:
+      - page: "guide/learning-path/06-hooks.md"
+        focus: "Module 06"
+      - page: "guide/learning-path/07-advanced.md"
+        focus: "Module 07"
+      - page: "guide/surfaces/cli.md"
+        focus: "The CLI chapter, version-pinned"
+      - page: "guide/ops/observability.md"
+        focus: "Observability for real repositories"
+      - page: "guide/workflows/production-reliability.md"
+        focus: "Bounded, verifiable production runs"
+    maintainer:
+      - page: "guide/learning-path/README.md"
+        focus: "The curriculum you will be guiding others through"
+      - page: "guide/core/settings-reference.md"
+        focus: "Every config key, cited"
+      - page: "guide/ops/automation.md"
+        focus: "Automation with budgets"
+      - page: "guide/roles/adoption-approaches.md"
+        focus: "The team-facing starting points"
+
+adaptive_triggers:
+  - keywords: ["hook", "guard", "guardrail"]
+    page: "guide/core/hooks-events-reference.md"
+    focus: "Hook events and the wire protocol"
+  - keywords: ["mcp", "connector", "plugin"]
+    page: "guide/core/plugins.md"
+    focus: "MCP servers, connectors, and the plugin system"
+  - keywords: ["team", "adoption", "rollout"]
+    page: "guide/roles/adoption-approaches.md"
+    focus: "Team adoption starting points"
+  - keywords: ["metric", "observability", "traceability"]
+    page: "guide/ops/observability.md"
+    focus: "Observing what sessions actually do"
+  - keywords: ["cost", "token", "price", "budget"]
+    page: "guide/cheatsheet.md"
+    anchor: "cost-notes"
+    focus: "Cost notes and the flags that bound spend"
+  - keywords: ["security", "trust", "permission"]
+    page: "guide/security/security-hardening.md"
+    focus: "The threat model and the trust gate"
+  - keywords: ["skill"]
+    page: "guide/core/skill-design-patterns.md"
+    focus: "Skill design patterns"
+  - keywords: ["test", "tdd"]
+    page: "guide/workflows/tdd.md"
+    focus: "The TDD workflow"
+  - keywords: ["spec", "plan"]
+    page: "guide/workflows/spec-first.md"
+    focus: "The spec-first workflow"
+  - keywords: ["cron", "schedule", "automation"]
+    page: "guide/ops/automation.md"
+    focus: "Scheduled and headless automation"
+  - keywords: ["web", "desktop", "remote"]
+    page: "guide/surfaces/web.md"
+    focus: "The web surface and cloud sessions"
+  - keywords: ["context", "prompt"]
+    page: "guide/core/context-engineering.md"
+    focus: "Context engineering"

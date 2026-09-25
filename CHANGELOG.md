@@ -7,6 +7,19 @@ drafted from the actual changes — never generated from a diff summary (see
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-25
+
+### Added
+
+- Personalized onboarding ([tools/onboarding-prompt.md](tools/onboarding-prompt.md)):
+  an interactive prompt that profiles the reader (goal, track, time budget)
+  and routes them through the guide. Routing lives in the hand-maintained
+  `scripts/onboarding.yaml`, is validated at generation (every stop's page
+  exists, every anchor resolves), and is embedded as the `onboarding:` section
+  of the generated `machine-readable/reference.yaml` (schema documented in
+  `machine-readable/schema.md`). Structure and pedagogy adapted from the
+  source guide's onboarding prompt; mechanics cited to the oracle.
+
 ### Changed
 
 - Retired the transition-era naming-policy gate (`check-claude-terms.sh`,

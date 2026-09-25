@@ -48,6 +48,13 @@ Answer the folder-trust prompt once. Run one real task before configuring
 anything — configuration earns its place through observed friction, not
 ambition.
 
+New to agentic coding, or want a guided tour instead of a reading order? Run
+the personalized onboarding and let the guide route you by goal and track:
+
+```bash
+vibe "Fetch and follow the onboarding instructions from: https://raw.githubusercontent.com/JonLev/working-with-mistral-vibe/main/tools/onboarding-prompt.md"
+```
+
 Then read in this order:
 
 1. [Installation and first run](guide/learning-path/01-installation.md) —
@@ -74,6 +81,7 @@ Then read in this order:
 | [`guide/releases.md`](guide/releases.md) | Vibe release tracking and the guide's re-verification loop |
 | [`quiz/`](quiz/README.md) | 123 oracle-grounded questions, schema-validated in CI |
 | [`examples/`](examples/README.md) | Installable templates: agents, skills, hooks, commands |
+| [`tools/`](tools/onboarding-prompt.md) | Agent-facing tools: the personalized onboarding prompt |
 
 Start anywhere: the [guide index](guide/README.md) lists every page with
 reading time and status, and the [glossary](guide/core/glossary.md) defines

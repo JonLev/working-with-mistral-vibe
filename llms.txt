@@ -2,7 +2,7 @@
 
 > Community guide for Mistral AI's Vibe products — Vibe CLI, Vibe Code desktop, and Vibe Code Web. Voice, page contract, and naming policy: guide/style-guide.md. Structure and pedagogy adapted from claude-code-ultimate-guide (CC BY-SA 4.0; see NOTICE.md); all mechanics independently verified against Vibe.
 
-Guide version 0.1.0.
+Guide version 0.2.0.
 
 ## Guide pages
 
