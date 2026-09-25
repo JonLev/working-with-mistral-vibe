@@ -7,6 +7,15 @@ drafted from the actual changes — never generated from a diff summary (see
 
 ## [Unreleased]
 
+### Changed
+
+- Retired the transition-era naming-policy gate (`check-claude-terms.sh`,
+  its allowlist, and its self-test fixture) — it policed the adaptation from
+  the source guide and is no longer part of the maintenance gates. The
+  naming policy itself is unchanged and lives in the style guide; ongoing
+  gates (links, frontmatter, markdown lint, generator drift, quiz schema,
+  version sync, release drift) are unaffected.
+
 ## [0.1.0] - 2026-09-25
 
 Initial public version: the complete guide, built
