@@ -1,0 +1,285 @@
+# scripts/monolith.yaml — chapter spec for the monolith spine (guide/vibe-guide.md).
+#
+# Hand-maintained INPUT to scripts/generate-monolith.py. The intro and tldr
+# text below is authored once, for the spine; it must not duplicate any
+# paragraph of a deep-dive page (the generator never copies page prose —
+# per-page entries are built from frontmatter descriptions plus the first
+# sentence of each page's TL;DR block, both pulled live at generation time).
+#
+# Editing the routing of the spine means editing this file and regenerating;
+# guide/vibe-guide.md itself is never edited by hand.
+
+banner: "Verified against vibe 2.25.8 on 2026-09-24."
+surface: "release 2.25.8"
+
+chapters:
+  - title: "Quick Start"
+    intro: |
+      Vibe is usable in minutes: run the setup once, answer the folder-trust
+      prompt, and start a session in a real repository (PART-CLI; PART-TRUST
+      section 3.2). This chapter routes installation, first run, and the
+      diff-review habit — and points at the adoption page when the question is
+      how a team should start rather than how the tool installs.
+    tldr: |
+      Install, trust the folder, run one real task before configuring
+      anything. Configuration earns its place through friction, not ambition:
+      start with a minimal `AGENTS.md` and add only what you observe you need.
+    pages:
+      - guide/learning-path/README.md
+      - guide/learning-path/01-installation.md
+
+  - title: "Core Concepts: the Loop, Context, and the Harness"
+    intro: |
+      Everything else in this guide assumes one mental model: the Vibe CLI is
+      a runtime harness around a single loop — send context to the model,
+      execute the tool calls it returns, feed the results back (PART-CLI;
+      PART-SESSIONS). The three deep dives here are the theory layer: how the
+      harness is built, how context is engineered inside it, and how to
+      evaluate the model-harness pair rather than the model alone.
+    tldr: |
+      One loop, a small verified tool surface, a tunable compaction trigger
+      instead of a fixed context window, and a permission chain you control —
+      that is the whole model. Each deep dive gives one of those its full
+      chapter.
+    pages:
+      - guide/core/architecture.md
+      - guide/core/context-engineering.md
+      - guide/core/agent-harness.md
+
+  - title: "Memory and Configuration"
+    intro: |
+      Durable context in Vibe lives in two files: `AGENTS.md` carries
+      instructions to the agent, `config.toml` carries settings for the
+      harness (PART-AGENTSMD; PART-CONFIG). Both layer user scope against
+      project scope, both are gated by folder trust, and both punish padding —
+      the strongest evidence favors small, human-written instruction files.
+    tldr: |
+      Write instructions by hand, keep them minimal, and put each one at the
+      scope where it applies; configure the harness in `config.toml` and
+      remember that project beats user. The reference pages document every
+      verified key and the full precedence stack.
+    pages:
+      - guide/core/memory-systems.md
+      - guide/core/settings-reference.md
+      - guide/learning-path/03-memory.md
+
+  - title: "Agents and Specialization"
+    intro: |
+      Specialization in Vibe is a TOML file: an agent profile restricts tools
+      and injects a prompt, the `task` tool delegates work to a subagent with
+      isolated context, and the built-in profiles cover the common postures
+      from read-only to auto-approve (PART-AGENTS; PART-PERMISSIONS
+      section 4.1).
+    tldr: |
+      Delegate the second repetitive task, not the first: extract an agent
+      profile when a pattern repeats, restrict its tools to what it needs, and
+      let the depth-1 `task` fork keep search noise out of your main context.
+    pages:
+      - guide/core/agents-and-skills-reference.md
+      - guide/learning-path/04-agents.md
+
+  - title: "Skills"
+    intro: |
+      A skill is a folder with a `SKILL.md`: a description the model uses for
+      routing, instructions it loads on demand, and optional scripts and
+      assets (PART-SKILLS). Skills are how you encode a repeatable practice
+      once and let the agent find it again on its own.
+    tldr: |
+      Write the description as a routing rule, keep the body lean, and
+      evaluate a skill like any other change. The deep dives cover the
+      frontmatter schema, nine architecture patterns, and the discovery order.
+    pages:
+      - guide/core/skill-design-patterns.md
+      - guide/learning-path/05-skills.md
+
+  - title: "Sessions, Context, and Daily Commands"
+    intro: |
+      Sessions are the unit of work: the compaction trigger keeps a session
+      inside its context budget, the session store persists it for `/resume`,
+      and the slash-command surface inspects and controls all of it
+      (PART-SESSIONS section 4.1; PART-COMMANDS section 2).
+    tldr: |
+      Watch context with `/status`, summarize with `/compact`, start clean
+      with `/clear`, and treat one task per session as the default. The
+      lifecycle protocol keeps long-running work inspectable and resumable.
+    pages:
+      - guide/learning-path/02-core-loop.md
+      - guide/workflows/task-management.md
+      - guide/ops/observability.md
+
+  - title: "Hooks: Programmable Guardrails"
+    intro: |
+      Hooks are guard programs: three events in `hooks.toml` — `pre_tool`,
+      `post_tool`, `post_agent` — receive a JSON payload on stdin and answer
+      with a decision object on stdout (PART-HOOKS). They fail open unless a
+      table sets `strict = true`; the unified harness adds its own typed
+      points (PART-HOOKS-UNIFIED).
+    tldr: |
+      Warn by default, enforce with `strict = true` only where a wrong call
+      has real blast radius, and test a deny guard against fixtures before you
+      trust it live.
+    pages:
+      - guide/core/hooks-events-reference.md
+      - guide/learning-path/06-hooks.md
+
+  - title: "MCP, Connectors, and Plugins"
+    intro: |
+      Everything outside the process boundary arrives through extension
+      surfaces: MCP servers registered with `vibe mcp add` or
+      `[[mcp_servers]]`, Mistral connectors auto-discovered on a Mistral
+      provider, and plugin packages built on the public Agent Plugins 1.0
+      spec, with import adapters for foreign formats (PART-MCP;
+      PART-CONNECTORS; PART-PLUGINS).
+    tldr: |
+      Add servers deliberately, vet what they can reach, and remember
+      connectors arrive enabled by default under the unified harness. The deep
+      dives cover the config surface, the plugin model, and the per-tool
+      permission chain that governs all of it.
+    pages:
+      - guide/core/plugins.md
+      - guide/core/tools-reference.md
+
+  - title: "Security and Production"
+    intro: |
+      The security model composes three verified gates — folder trust, the
+      permission chain, and hooks — plus the operational rules for pointing the
+      tool at production systems (PART-TRUST; PART-PERMISSIONS; PART-HOOKS).
+      The deep dives here are the threat model and hardening guide, the
+      production safety rules, and the data-privacy inventory of what leaves
+      the machine.
+    tldr: |
+      Trust is the root permission: an untrusted folder runs without project
+      config, and a declined trust prompt is a deny, not a fallback. From
+      there: restrict tools, guard the risky calls with strict hooks, bound
+      headless runs with budgets, and know your egress.
+    pages:
+      - guide/security/security-hardening.md
+      - guide/security/production-safety.md
+      - guide/security/data-privacy.md
+
+  - title: "Operations, Teams, and Adoption"
+    intro: |
+      Once individuals use the tool, the questions become organizational:
+      what to measure, how to attribute AI-assisted changes, how to automate
+      recurring runs, and how to roll the practice out to a team. These pages
+      cover the observability surfaces, the traceability policy, the metrics
+      frameworks, automation with budgets, role-by-role guidance, and the
+      adoption decision framework.
+    tldr: |
+      Measure accepted outcomes, not activity; make attribution a deliberate
+      policy choice; automate with bounded programmatic runs. Nobody has team
+      adoption fully figured out — the adoption page is honest about that,
+      including the studies.
+    pages:
+      - guide/ops/ai-traceability.md
+      - guide/ops/team-metrics.md
+      - guide/ops/automation.md
+      - guide/roles/ai-roles.md
+      - guide/roles/learning-with-ai.md
+      - guide/roles/adoption-approaches.md
+
+  - title: "Workflows and Methodologies"
+    intro: |
+      The workflows are the recipe layer: step-by-step patterns from
+      test-driven development to event-driven agents, each mapped onto
+      Vibe's actual surface instead of transliterated from another tool —
+      every mechanic inside them cites the oracle. The methodology reference
+      and the loop and graph engineering pages are the theory they descend
+      from.
+    tldr: |
+      Pick a workflow per problem shape — verification-first, spec-first,
+      exploration, or refinement — and let the plan agent, worktrees, and
+      budgeted programmatic runs carry the mechanics.
+    pages:
+      - guide/core/methodologies.md
+      - guide/core/loop-graph-engineering.md
+      - guide/workflows/README.md
+      - guide/workflows/tdd.md
+      - guide/workflows/spec-first.md
+      - guide/workflows/rpi.md
+      - guide/workflows/exploration.md
+      - guide/workflows/production-reliability.md
+      - guide/workflows/best-of-n.md
+      - guide/workflows/iterative-refinement.md
+      - guide/workflows/changelog-fragments.md
+      - guide/workflows/event-driven-agents.md
+      - guide/learning-path/07-advanced.md
+
+  - title: "The Surfaces: CLI, Desktop, and Web"
+    intro: |
+      One harness, three clients. This chapter routes the product-surface
+      pages: the CLI as the baseline everything else builds on, the Vibe
+      Code desktop app with its bundled harness session runtime, Vibe Code
+      Web with its teleport bridges and cloud sandboxes, and the migration
+      chapter for porting a setup from another agentic CLI (PART-CLI;
+      PART-WEB). Desktop and web claims are pinned to the bundle and docs
+      versions they were verified against; the pages carry their own Known
+      gaps.
+    tldr: |
+      Start with the CLI; add the desktop app for a GUI session client that
+      runs the same harness out of the box, and the web surface for sandboxed
+      cloud sessions reached by /teleport, &, and /remote-project. Porting
+      from another tool is a rename-and-re-derive exercise the migration page
+      maps row by row.
+    pages:
+      - guide/surfaces/cli.md
+      - guide/surfaces/desktop.md
+      - guide/surfaces/web.md
+      - path: guide/surfaces/migrating-from-claude-code.md
+        title: "Migration from Another Agentic CLI"
+        blurb: "Concept-by-concept port of an existing setup: which mechanics rename, which must be re-derived, and which do not transfer — every row cited to the oracle"
+
+appendices:
+  - title: "Appendix A — Glossary"
+    intro: |
+      Every term this guide uses, defined once: universal agentic-coding
+      vocabulary plus the Vibe mechanics behind each product term.
+    pages:
+      - guide/core/glossary.md
+  - title: "Appendix B — Cheatsheet"
+    intro: |
+      The daily-reference condensation of this guide: the command, flag, and
+      key tables, rebuilt from the oracle with a citation on every row.
+    pages:
+      - guide/cheatsheet.md
+  - title: "Appendix C — Diagrams"
+    intro: |
+      Forty-eight Mermaid diagrams with ASCII fallbacks, re-labeled for Vibe;
+      each links back into the prose page that covers its topic.
+    pages:
+      - guide/diagrams/README.md
+  - title: "Appendix D — Quiz"
+    intro: |
+      The question bank: multiple-choice questions grounded in the oracle and
+      the pages of this guide, with backlinks to the section each answer
+      comes from.
+    pages:
+      - quiz/README.md
+  - title: "Appendix E — Machine-Readable Index and the MCP Server"
+    intro: |
+      The same guide, as data: a generated index of every page and heading,
+      and an npm MCP server that serves the pages and the index as tools to
+      any MCP-compatible client. Code is MIT, content is CC BY-SA 4.0 — the
+      split is recorded in NOTICE.md.
+    pages:
+      - path: machine-readable/schema.md
+        title: "Reference Index Schema"
+        blurb: "The generated index of every guide page — paths, titles, descriptions, tags, headings with line numbers — and the contract it follows"
+      - path: mcp-server/README.md
+        title: "MCP Server"
+        blurb: "The npm server that serves the guide's pages and the reference index as tools to any MCP-compatible client; MIT code, CC BY-SA 4.0 content"
+  - title: "Appendix F — Vibe Releases and Guide Re-verification"
+    intro: |
+      The release-tracking page: every mistral-vibe release that affects the
+      guide gets a dated row — what changed for guide content, whether the
+      oracle was re-verified, and when the page banners were re-stamped. It
+      is the trigger surface for the guide's re-verification loop.
+    pages:
+      - guide/releases.md
+  - title: "Appendix F — Translations and Language Adaptations"
+    intro: |
+      English is the only maintained edition; community adaptations are
+      listed under a provenance contract (pinned guide version and source
+      SHA, declared coverage).
+    pages:
+      - guide/translations.md

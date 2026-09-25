@@ -1,0 +1,16 @@
+# Pair with prompts/loop-monitor.md, selected via system_prompt_id below.
+# active_model = "local" is the builtin devstral alias on the llamacpp provider;
+# it needs a local server. Delete the line to fall back to the default model.
+agent_type = "agent"
+display_name = "Loop Monitor"
+description = "Reads a session log and reports whether a long-running unattended session is progressing, stalled, looping, or burning tokens. Read-only observer; prints one status line per check."
+safety = "safe"
+system_prompt_id = "loop-monitor"
+active_model = "local"
+enabled_tools = ["read_file", "bash"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

@@ -1,0 +1,16 @@
+# Pair with prompts/devops-sre.md, selected via system_prompt_id below.
+# The bash denylist hard-denies the destructive infra command prefixes the
+# role is never allowed to run (denylist entries auto-deny by prefix match).
+agent_type = "agent"
+display_name = "DevOps SRE"
+description = "Infrastructure diagnosis and incident response using the FIRE framework: clarifies the symptom, investigates with read-only commands, proposes remediations with rollback plans, and waits for approval before anything destructive."
+safety = "neutral"
+system_prompt_id = "devops-sre"
+
+[tools.bash]
+denylist = [
+  "kubectl delete",
+  "kubectl scale",
+  "terraform destroy",
+  "rm -rf",
+]

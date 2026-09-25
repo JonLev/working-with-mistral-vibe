@@ -1,0 +1,13 @@
+# Pair with prompts/planning-coordinator.md, selected via system_prompt_id below.
+agent_type = "subagent"
+display_name = "Planning Coordinator"
+description = "Synthesizes several specialist research reports into one coherent implementation plan with a dependency-ordered task graph. Read-only: returns the plan document as text."
+safety = "safe"
+system_prompt_id = "planning-coordinator"
+enabled_tools = ["read_file", "grep", "bash"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

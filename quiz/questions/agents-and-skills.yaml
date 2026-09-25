@@ -1,0 +1,327 @@
+category: "Agents and Skills"
+category_id: 4
+
+questions:
+  - id: "as-001"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "On a fresh install with no config changes, Vibe edits a file without asking, then prompts before running the test suite. Why?"
+    options:
+      a: "The default agent is accept-edits: file write and edit tools are set to always, everything else follows the normal permission gate"
+      b: "The default agent is ask, but file edits are always exempt from approval in Vibe"
+      c: "A bug — file edits should prompt under the default agent"
+      d: "The default agent is auto-approve; the test prompt appears because bash is never auto-approved"
+    correct: "a"
+    explanation: |
+      default_agent defaults to accept-edits, whose overrides set
+      tools.write_file.permission = always and tools.edit.permission = always —
+      auto-approves file edits only; every other tool, including bash, follows
+      normal permission resolution (PART-PERMISSIONS section 4.1; PART-CONFIG
+      section 1.5). The confusion (b) inverts it: ask is a different profile
+      that prompts for non-allowlisted tool executions, and nothing in Vibe
+      exempts file edits by mechanism — it is this profile's override that
+      does it. auto-approve would not have prompted for the tests at all: it
+      sets bypass_tool_permissions = true.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "accept-edits — destructive, the default agent"
+      anchor: "#accept-edits--destructive-the-default-agent"
+
+  - id: "as-002"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You select the plan agent and ask it to \"write the implementation directly.\" What can it actually write?"
+    options:
+      a: "Anything, after asking for approval per file"
+      b: "Nothing in the repo: write_file and edit are permission never, with an allowlist for plan documents under the plans dir in VIBE_HOME"
+      c: "Only files it created earlier in the same session"
+      d: "Only files under the current working directory, after one approval"
+    correct: "b"
+    explanation: |
+      The plan profile sets tools.write_file.permission = never and
+      tools.edit.permission = never, each with an allowlist for the plans
+      directory under VIBE_HOME (default ~/.vibe/plans), and read_file gains
+      that allowlist too (PART-PERMISSIONS section 4.1; PART-AGENTS section
+      7). The plans dir is user-home territory, not the repo — so plan can
+      write its plan document but no repository file, by permission never,
+      not by asking. That is what makes plan the read-only exploration and
+      planning posture.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "plan — safe"
+      anchor: "#plan--safe"
+
+  - id: "as-003"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "You launch: vibe --agent plan --auto-approve. What runs?"
+    options:
+      a: "The auto-approve profile — --agent and --auto-approve are mutually exclusive"
+      b: "The plan profile, plus a forced bypass that approves all tool calls on top of it"
+      c: "The plan profile; --auto-approve is ignored because plan is a safe agent"
+      d: "An error — --auto-approve requires the accept-edits profile"
+    correct: "b"
+    explanation: |
+      --auto-approve/--yolo combines with any agent: with --agent X it keeps
+      profile X and additionally sets force_bypass_tool_permissions
+      (PART-PERMISSIONS section 4.1; PART-AGENTS section 10). Only when
+      --agent is omitted does --auto-approve select the auto-approve profile.
+      So this launch keeps plan's tool overrides but bypasses the per-call
+      gate — which is why the combination is sharper than it looks: the
+      bypass is checked first in the tool gate, before plan's never
+      permissions are consulted.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "Selecting and switching agents"
+      anchor: "#selecting-and-switching-agents--stable"
+
+  - id: "as-004"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A custom agent TOML file contains display_name, description, safety, agent_type, instructions, plus active_model and a [tools.bash] table. How are the last two treated?"
+    options:
+      a: "As errors — agent TOML accepts only the five profile fields"
+      b: "As config overrides: everything that is not a parsed profile field becomes an override applied through the agent profile layer"
+      c: "As comments — unknown keys are silently dropped at load"
+      d: "As documentation for humans; the agent behaves like accept-edits"
+    correct: "b"
+    explanation: |
+      AgentProfile.from_toml pops display_name, description, safety,
+      agent_type, and instructions; every remaining key becomes an override
+      applied as a dedicated AgentProfileLayer on the config orchestrator —
+      any config.toml field is valid in an agent TOML (PART-AGENTS section
+      8). A broken definition (invalid override keys) fails validation and is
+      dropped at discovery with a warning, not silently ignored. Also note
+      safety is a visual hint only — the [tools.bash] table is what actually
+      changes behavior.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "Parsed fields, and what everything else means"
+      anchor: "#parsed-fields-and-what-everything-else-means"
+
+  - id: "as-005"
+    difficulty: "senior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A teammate tries: vibe --agent explore. What happens?"
+    options:
+      a: "It works — explore is a built-in agent like any other"
+      b: "It errors: explore is a subagent and cannot be used as the primary agent; it is reachable only through the task tool"
+      c: "It silently falls back to the default agent"
+      d: "It starts explore with a warning and read-only tools"
+    correct: "b"
+    explanation: |
+      explore has agent_type = subagent, and --agent refuses subagent names
+      with a ValueError stating only agents of type agent can be selected
+      (PART-AGENTS sections 8, 10). Subagents are delegation-only: spawned by
+      the model through the task tool, running without user interaction and
+      returning text. There is no silent fallback — the error is explicit.
+      The same rule in reverse: a primary agent (agent_type agent) cannot be
+      spawned via task; it raises a security-constraint ToolError.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "agent_type semantics"
+      anchor: "#agent_type-semantics"
+
+  - id: "as-006"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "You define audit.toml in both ~/.vibe/agents/ and the project's .vibe/agents/, and an agent_paths entry also points at a directory containing audit.toml. Which one loads?"
+    options:
+      a: "All three; the last one alphabetically wins conflicts"
+      b: "The one found first in search-path order: agent_paths entries, then project .vibe/agents/, then ~/.vibe/agents/ — later duplicates are skipped"
+      c: "The project one — project always beats user for agents"
+      d: "All three merge into one combined profile"
+    correct: "b"
+    explanation: |
+      The custom agent search path is agent_paths config entries first, then
+      project agent dirs (.vibe/agents/ under each project root), then
+      ~/.vibe/agents/, and the first match by name wins — later duplicates
+      are skipped with a debug log (PART-AGENTS section 8). Unlike config
+      layering, agent discovery does not merge — (c) is the config-layering
+      habit misapplied. The agent's name is the file stem; there is no name
+      field, and a custom TOML whose stem equals a builtin name replaces that
+      builtin.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "Where agent TOML files live"
+      anchor: "#where-agent-toml-files-live"
+
+  - id: "as-007"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You write a SKILL.md whose frontmatter sets name and a long description, but no other keys. Which fields were actually required, and what does the description do?"
+    options:
+      a: "name and description are both required; the description is the routing text — the only text the model sees before loading the skill"
+      b: "Only name is required; the description is optional documentation"
+      c: "name, description, and license are all required"
+      d: "name and description are required, but the description is only shown in the slash menu, not used for routing"
+    correct: "a"
+    explanation: |
+      The SkillMetadata schema requires exactly name (1-64 chars, lowercase
+      alphanumerics and hyphens) and description (1-1024 chars) (PART-SKILLS
+      section 1.1). The description is the routing text — the model decides
+      whether to load the skill from it alone, so it should say when to use
+      the skill, not what it is. License is optional; unknown keys are
+      ignored, and the shipped skill-creator builtin says plainly: do not
+      invent frontmatter keys.
+    doc_reference:
+      file: "guide/core/skill-design-patterns.md"
+      section: "Frontmatter: seven keys, nothing else"
+      anchor: "#frontmatter-seven-keys-nothing-else"
+
+  - id: "as-008"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A skill sets user-invocable: false. What changes?"
+    options:
+      a: "The skill cannot be loaded at all — it is disabled"
+      b: "It is hidden from the slash menu and /skill-name no longer resolves, but the model can still load it through the skill tool"
+      c: "Only the model can load it, and it then requires approval"
+      d: "It loads automatically at session start instead of on demand"
+    correct: "b"
+    explanation: |
+      user-invocable: false makes a skill model-only: /skill-name resolution
+      requires user_invocable to be true, so the invocation is treated as a
+      plain prompt, while the skill remains loadable by the model through the
+      skill tool (PART-SKILLS sections 1.1, 1.3). The builtin vibe skill is
+      exactly this shape — model-only reference. The skill tool has
+      permission ALWAYS, so no approval is added, and nothing loads
+      automatically at session start.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "SKILL.md frontmatter"
+      anchor: "#skillmd-frontmatter--stable"
+
+  - id: "as-009"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "You create a local skill named skill-creator in your project's .vibe/skills/ directory. What happens at load time?"
+    options:
+      a: "It loads and overrides the built-in skill-creator, since project beats builtin"
+      b: "It is silently skipped — built-in skill names are reserved, and a discovered skill colliding with a builtin is dropped"
+      c: "It loads alongside the builtin, with the project one winning on /skill-creator"
+      d: "It loads, and the builtin is renamed with a suffix"
+    correct: "b"
+    explanation: |
+      Built-in skills (vibe, skill-creator) are seeded first and their names
+      are reserved: a discovered skill colliding with a builtin name is
+      silently skipped at load (PART-SKILLS section 1.2). Unlike config
+      layering or custom agents (where a matching stem overrides a builtin),
+      skill discovery gives builtins the win. This makes (a) the layered-config
+      habit misapplied — for skills, first match wins and builtins come first.
+    doc_reference:
+      file: "guide/core/skill-design-patterns.md"
+      section: "Where skills live, and who wins"
+      anchor: "#where-skills-live-and-who-wins"
+
+  - id: "as-010"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "Mid-conversation, the model calls the skill tool for a skill it already loaded earlier. What does the tool return?"
+    options:
+      a: "The skill body again, re-injected fresh"
+      b: "A message that the skill is already loaded earlier in this conversation, with instructions to reuse them"
+      c: "An error — a skill may only be loaded once per session"
+      d: "A diff of the skill body against the previous load"
+    correct: "b"
+    explanation: |
+      The skill tool returns "Skill '<name>' is already loaded earlier in
+      this conversation. Reuse those instructions." — a skill loads once per
+      conversation (PART-SKILLS section 1.4). It is not an error, and there is
+      no re-injection or diffing. This is why the guide treats a skill as a
+      one-shot context injection: the body stays in the conversation from the
+      first load onward.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "The skill tool"
+      anchor: "#the-skill-tool--stable"
+
+  - id: "as-011"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "What exactly does the skill tool hand the model when it loads a skill?"
+    options:
+      a: "Only the SKILL.md body text"
+      b: "The skill body inside a skill_content envelope, plus the skill's base directory and a sampled listing of the skill directory (max 10 files listed)"
+      c: "Every file in the skill directory, inlined in full"
+      d: "A tarball path the model must extract with bash"
+    correct: "b"
+    explanation: |
+      The result is a skill_content envelope with the skill body, the skill's
+      base directory (with the note that relative paths in the skill are
+      relative to it), and a sampled skill_files listing capped at 10 files
+      listed and a 200-entry walk (PART-SKILLS section 1.4). SKILL.md itself
+      is excluded from the listing. This is progressive disclosure: the model
+      sees the body plus a map, then reads support files on demand — full
+      inlining does not happen.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "The skill tool"
+      anchor: "#the-skill-tool--stable"
+
+  - id: "as-012"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "config.toml has enabled_skills = [\"code-review\"] and disabled_skills = [\"search-*\"]. What is the effective skill set?"
+    options:
+      a: "All skills except those matching search-*"
+      b: "Only code-review — a non-empty enabled_skills is an allowlist, and disabled_skills is ignored when it is set"
+      c: "code-review plus every skill not matching search-*"
+      d: "No skills — setting both keys is a config error"
+    correct: "b"
+    explanation: |
+      enabled_skills non-empty means allowlist: everything not matching is
+      hidden, and disabled_skills is applied only when enabled_skills is
+      empty (PART-SKILLS section 1.2; PART-CONFIG section 1.6). Patterns
+      support exact names, globs, and re: regex — the same matcher family as
+      tools and agents. The mirror-image habit from tool config does not
+      rescue (c): there is no combined allowlist-plus-blocklist semantics.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "Skills config keys"
+      anchor: "#skills-config-keys--stable"
+
+  - id: "as-013"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "You define a custom subagent named auditor. The model calls task with agent = \"auditor\". What happens at the permission gate?"
+    options:
+      a: "It auto-approves — task tool calls never prompt"
+      b: "It prompts for approval — the task tool defaults to permission ask with an allowlist that covers only the built-in explore subagent"
+      c: "It denies — custom subagents cannot be spawned"
+      d: "It auto-approves once, then prompts for every subsequent spawn"
+    correct: "b"
+    explanation: |
+      TaskToolConfig defaults to permission = ask with allowlist =
+      [\"explore\"], so the built-in subagent is auto-approved and any other
+      subagent requires approval unless allowlisted — patterns are fnmatch
+      over the agent name, and the denylist wins over the allowlist
+      (PART-AGENTS section 9). Custom subagents are spawnable (agent_type =
+      subagent is what makes them so); the gate, not the type system, is what
+      interrupts the spawn. Widening this is a [tools.task] config change.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "Permission config"
+      anchor: "#permission-config"
+
+  - id: "as-014"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You press Shift+Tab four times from the default agent. Which sequence do you cycle through, and what happens to the running session?"
+    options:
+      a: "ask, plan, accept-edits, auto-approve, then custom agents sorted by name; the switch applies to the running session"
+      b: "ask, plan, auto-approve, accept-edits; the session restarts on each switch"
+      c: "Only the four built-ins, in the order they were used last; config changes require a restart"
+      d: "It opens the agent picker dialog instead of cycling"
+    correct: "a"
+    explanation: |
+      Shift+Tab cycles get_agent_order(): ask, plan, accept-edits,
+      auto-approve, then custom primary agents sorted by name — and the
+      switch applies to the running session, with the profile's overrides
+      re-installed through the config orchestrator's agent profile layer
+      (PART-AGENTS section 10). No restart, no picker dialog. Subagents are
+      not in the cycle at all — they are not user-selectable.
+    doc_reference:
+      file: "guide/core/agents-and-skills-reference.md"
+      section: "Selecting and switching agents"
+      anchor: "#selecting-and-switching-agents--stable"

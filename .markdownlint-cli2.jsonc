@@ -1,0 +1,43 @@
+// Linter: markdownlint-cli2. This is the whole lint config — keep it minimal.
+//
+// Deliberate deviations from the defaults, with reasons:
+// - MD013 (line length) off: tables and banner lines run long by design
+//   (style guide: "concise is not curt", tables for every comparison).
+// - MD060 (table column style) off: this repo writes compact separators
+//   (|---|---|), the dominant style in the mechanics-verification content.
+// - MD025 (single title): frontmatter `title` must not count as a second
+//   H1 — every page has frontmatter title + one `#` heading.
+//
+// Scope: everything except:
+// - docs/mechanics/ — frozen verification oracle; lint findings
+//   there cannot be fixed without redoing the verification.
+// - scripts/fixtures/ — gate self-test inputs, deliberately malformed.
+// - mcp-server/node_modules/ — installed dependencies.
+// - mcp-server/content/ — generated mirror of guide/ + indexes for the MCP
+//   server package; findings there are findings at the source, which is
+//   linted. The copy is never edited.
+{
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD060": false,
+    "MD025": { "front_matter_title": "" }
+  },
+  "overrides": [
+    {
+      // Keep-a-Changelog repeats section headings (### Added ...) under each
+      // release heading; duplicates are only flagged between siblings, which
+      // never occurs in a changelog. Added at the first multi-entry release.
+      "filter": ["CHANGELOG.md"],
+      "config": { "MD024": { "siblings_only": true } },
+      "combine": "merge"
+    }
+  ],
+  "globs": [
+    "**/*.md",
+    "!docs/mechanics/**",
+    "!scripts/fixtures/**",
+    "!mcp-server/node_modules/**",
+    "!mcp-server/content/**"
+  ]
+}

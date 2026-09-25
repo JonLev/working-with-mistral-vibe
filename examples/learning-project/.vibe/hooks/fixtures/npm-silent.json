@@ -1,0 +1,12 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000001",
+  "transcript_path": "",
+  "cwd": "/tmp/proofpack-learning",
+  "parent_session_id": null,
+  "hook_event_name": "pre_tool",
+  "tool_name": "bash",
+  "tool_call_id": "toolu_01",
+  "tool_input": {
+    "command": "npm --silent publish"
+  }
+}

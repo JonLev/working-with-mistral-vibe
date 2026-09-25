@@ -1,0 +1,328 @@
+category: "Memory and Configuration"
+category_id: 3
+
+questions:
+  - id: "mc-001"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "Your ~/.vibe/AGENTS.md says \"use spaces, 2-wide.\" The checked-in project AGENTS.md at the repo root says \"use tabs.\" Working in that project, which applies?"
+    options:
+      a: "The user file — personal preferences always win"
+      b: "The project file — project instructions take priority over user instructions"
+      c: "Whichever file was modified most recently"
+      d: "Both are injected and the model chooses per file"
+    correct: "b"
+    explanation: |
+      The injected prompt states the hierarchy verbatim: when both user-level
+      and project-level instructions are present, project instructions take
+      priority over user instructions, and among multiple project files the
+      one closer to the working directory wins (PART-AGENTSMD). There is no
+      recency rule and no per-file model choice — both files are injected, but
+      the priority order is fixed. To override a project convention for
+      yourself, the verified lever is a subdirectory AGENTS.md or editing the
+      project file, since the hierarchy is not configurable per user.
+    doc_reference:
+      file: "guide/core/memory-systems.md"
+      section: "AGENTS.md: the instruction hierarchy"
+      anchor: "#21-agentsmd-the-instruction-hierarchy"
+
+  - id: "mc-002"
+    difficulty: "junior"
+    profiles: ["junior", "pm"]
+    question: "A teammate asks where Vibe's automatically curated memory file lives — the one that distills what it learned each session. What is the honest answer?"
+    options:
+      a: "In ~/.vibe/memory/ — it auto-grows each session and you prune it"
+      b: "It does not exist: Vibe has no automatic memory extraction, no auto-loaded memory file, and no background consolidation pass; durable preferences live in ~/.vibe/AGENTS.md and you maintain them"
+      c: "In the session store — messages.jsonl is a distilled knowledge base"
+      d: "In trusted_folders.toml, which records decisions Vibe learned about you"
+    correct: "b"
+    explanation: |
+      At the documented 2.25.8 surface the oracle contains no auto-curated
+      memory file and no consolidation pass (guide/core/memory-systems.md,
+      "What Vibe does not have"). The session store is transcript, not
+      knowledge: messages.jsonl replays the conversation, and resume is
+      recall, not learning. Anything that looks like durable memory beyond
+      AGENTS.md is tooling you wire yourself — for example a post_agent hook
+      that distills each turn. trusted_folders.toml is the trust store and
+      holds path decisions only.
+    doc_reference:
+      file: "guide/core/memory-systems.md"
+      section: "What Vibe does not have"
+      anchor: "#23-what-vibe-does-not-have"
+
+  - id: "mc-003"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "Your repo grows and you add src/api/AGENTS.md with API conventions, but only some tasks touch that subtree. When do its contents enter the context?"
+    options:
+      a: "At session start, along with the root file"
+      b: "Lazily — when a file under src/api/ is read, the AGENTS.md files between that file and the open root are injected then"
+      c: "Never — only the repo root AGENTS.md is loaded"
+      d: "Only when you mention the directory with @ in a prompt"
+    correct: "b"
+    explanation: |
+      Subdirectory AGENTS.md files are collected between a read file's parent
+      and its containing open root and injected on read_file — lazy loading,
+      not session start (PART-AGENTSMD). That is the verified escape valve for
+      context cost: root and user files are always-on overhead, while
+      subdirectory files cost zero until a task touches the subtree. @ mentions
+      attach file content, not instruction files; instruction-file injection
+      is not mention-driven.
+    doc_reference:
+      file: "guide/core/memory-systems.md"
+      section: "AGENTS.md: the instruction hierarchy"
+      anchor: "#21-agentsmd-the-instruction-hierarchy"
+
+  - id: "mc-004"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "Your project root sits two levels below the git repo root, and both levels contain an AGENTS.md. Which files load, and which one wins a conflict?"
+    options:
+      a: "Only the project root's file — parent directories are ignored"
+      b: "Every AGENTS.md walking up from the project root to the trust root loads; the one closer to the working directory takes priority"
+      c: "Every AGENTS.md walking down from the trust root loads; the outermost wins"
+      d: "Only the git repo root's file loads, since it is the trust root"
+    correct: "b"
+    explanation: |
+      Project docs load from each open project root walking up to its trust
+      root (inclusive) — the trust root may even sit above the repo — and
+      among multiple project files, instructions closer to the working
+      directory take priority (PART-AGENTSMD). The walk is upward from where
+      you work, not downward, so a subdirectory file never loads at startup.
+      Note the gating: project roots must be trusted, or none of these files
+      load at all.
+    doc_reference:
+      file: "guide/core/memory-systems.md"
+      section: "AGENTS.md: the instruction hierarchy"
+      anchor: "#21-agentsmd-the-instruction-hierarchy"
+
+  - id: "mc-005"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "A nightly automation runs: vibe --trust -p \"update the changelog\". After a month, what does trusted_folders.toml contain for that directory?"
+    options:
+      a: "The directory, in the trusted array — --trust persists on first use"
+      b: "Nothing from these runs — --trust grants session-only, in-memory trust and never writes to the trust store"
+      c: "The directory, in the untrusted array, because non-interactive trust is always declined"
+      d: "A session entry that expires after 24 hours"
+    correct: "b"
+    explanation: |
+      --trust grants session trust via an in-memory list;
+      trusted_folders.toml is not modified (PART-TRUST section 3.3). The flag
+      exists precisely so non-interactive automation can skip the prompt
+      without leaving a persistent grant behind — nothing expires, because
+      nothing is written. Persistent trust comes only from an explicit
+      interactive decision (trust_repo or trust_cwd), which does write to the
+      store (PART-TRUST section 3.2).
+    doc_reference:
+      file: "guide/core/settings-reference.md"
+      section: "Session trust and workspace widening"
+      anchor: "#session-trust-and-workspace-widening"
+
+  - id: "mc-006"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "trusted_folders.toml lists /Users/alice/work as trusted and /Users/alice/work/untrusted-clone as untrusted. Alice opens a session in /Users/alice/work/untrusted-clone. What is the trust status?"
+    options:
+      a: "Trusted — the parent directory's trusted entry covers all descendants unconditionally"
+      b: "Untrusted — the lookup walks ancestors and the closest recorded ancestor decides; the child's own untrusted entry beats the parent's trusted entry"
+      c: "Undecided, and undecided paths behave as trusted"
+      d: "Trusted, but only for this session"
+    correct: "b"
+    explanation: |
+      is_trusted is tri-state: walking from the path up through ancestors, the
+      closest ancestor recorded in trusted or untrusted decides
+      (PART-TRUST section 3.1). A nearer untrusted decision therefore beats a
+      farther trusted one — the ancestor walk is ordered, not overridden by
+      the parent. Undecided paths report untrusted (they do not behave as
+      trusted), and there is no automatic session grant for them.
+    doc_reference:
+      file: "guide/core/settings-reference.md"
+      section: "Trusted-folder gating"
+      anchor: "#trusted-folder-gating--stable"
+
+  - id: "mc-007"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "Your ~/.vibe/config.toml sets theme = \"dark\" and the project's .vibe/config.toml sets theme = \"light\". You open the project in a trusted session. Which theme applies?"
+    options:
+      a: "dark — the user file always wins over the project file"
+      b: "light — the project layer overrides the user layer"
+      c: "Whichever file was written first"
+      d: "The session errors on the conflict and falls back to the default"
+    correct: "b"
+    explanation: |
+      The layer stack is defaults < GrowthBook < user TOML < project TOML <
+      VIBE_* env < session overrides < agent profile < admin — project config
+      overrides user config, confirmed in code (PART-CONFIG section 2.1).
+      There is no first-write rule and no conflict error; higher layers merge
+      over lower ones key by key. The practical takeaway is the inverse of
+      what many people assume: a checked-in project file can override your
+      personal settings, which is also why trust-gating the project layer
+      matters.
+    doc_reference:
+      file: "guide/core/settings-reference.md"
+      section: "The eight-layer stack"
+      anchor: "#the-eight-layer-stack"
+
+  - id: "mc-008"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "Same setup, plus the environment variable VIBE_ACTIVE_MODEL set in your shell. Which value wins for the active model: the project config, the user config, or the environment?"
+    options:
+      a: "Project config — it is the highest file-based layer"
+      b: "The environment — VIBE_* env vars sit above both user and project TOML in the layer stack"
+      c: "User config — personal model choice is protected from overrides"
+      d: "The three values are merged and the model is chosen by alias pattern"
+    correct: "b"
+    explanation: |
+      The effective order is defaults < GrowthBook < user TOML < project TOML
+      < VIBE_* env < session overrides < agent profile < admin
+      (PART-CONFIG section 2.1). Only session overrides, the active agent
+      profile's overrides, and org admin config outrank the environment. There
+      is no merge for the active model — it is a scalar, replaced by the
+      highest layer that sets it. This is why a stray VIBE_* export in a shell
+      profile can silently defeat both config files.
+    doc_reference:
+      file: "guide/core/settings-reference.md"
+      section: "The eight-layer stack"
+      anchor: "#the-eight-layer-stack"
+
+  - id: "mc-009"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "The user config sets disabled_tools = [\"web_fetch\"] and the project config sets disabled_tools = [\"search\"]. What is the effective disabled_tools list?"
+    options:
+      a: "[\"search\"] — the project list replaces the user list"
+      b: "[\"web_fetch\", \"search\"] — list keys concat-merge, so the project list adds to the user list"
+      c: "The intersection of the two lists"
+      d: "Neither; conflicting list values invalidate both entries"
+    correct: "b"
+    explanation: |
+      disabled_tools is a WithConcatMerge key: lists append across layers, so
+      the project list adds to the user list (PART-CONFIG section 2.1). Only
+      nested tables like tools and models deep-merge, and keyed arrays like
+      providers union by name — the merge semantics are per field, not global.
+      The practical consequence: a project cannot un-disable a tool the user
+      disabled; it can only disable more.
+    doc_reference:
+      file: "guide/core/settings-reference.md"
+      section: "Merge semantics per field"
+      anchor: "#merge-semantics-per-field"
+
+  - id: "mc-010"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "In a trusted session you approve a tool call with \"approve permanently.\" Where does that write land by default?"
+    options:
+      a: "The project's .vibe/config.toml — you were working in the project"
+      b: "The user layer (~/.vibe/config.toml) by default; a trusted project layer only if no user layer exists"
+      c: "The session's meta.json config snapshot only"
+      d: "A dedicated permissions file beside trusted_folders.toml"
+    correct: "b"
+    explanation: |
+      Implicit writes — approve-permanently rules, config edits, migrations —
+      persist to the user layer by default; if no user layer exists, a trusted
+      project layer; else the ephemeral overrides layer (PART-CONFIG section
+      2.3). The stated reasoning: a project config discovered by walking up
+      parents is rarely the scope the user meant in a monorepo. There is no
+      separate permissions file in the verified surface — permanent approvals
+      write into [tools.<name>] in config.toml.
+    doc_reference:
+      file: "guide/core/settings-reference.md"
+      section: "Session overrides, protected fields, and where implicit writes land"
+      anchor: "#session-overrides-protected-fields-and-where-implicit-writes-land"
+
+  - id: "mc-011"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You clone a repo, start vibe in it, and decline the trust prompt. What does the session run with?"
+    options:
+      a: "Nothing — Vibe refuses to run in an untrusted directory"
+      b: "The cwd stays writable, user-level config and skills from ~/.vibe always load, but the project's config, hooks, skills, agents, and repo AGENTS.md are ignored"
+      c: "The cwd becomes read-only until you trust it"
+      d: "Everything loads, but every tool call prompts for approval"
+    correct: "b"
+    explanation: |
+      Declining persists the cwd into untrusted, and the session runs with
+      project configuration ignored: project .vibe/config.toml,
+      .vibe/hooks.toml, the .vibe subdirectories, .agents/skills, and repo
+      AGENTS.md are not loaded from untrusted roots (PART-TRUST sections 3.2,
+      3.5). The cwd itself remains writable — the workspace always authorizes
+      it — and the user layer is always trusted, so ~/.vibe content loads
+      regardless. Approval prompting is the permission system's business and
+      is unaffected by the trust decision.
+    doc_reference:
+      file: "guide/core/settings-reference.md"
+      section: "What untrusted means"
+      anchor: "#what-untrusted-means"
+
+  - id: "mc-012"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "You want to flip one tool's permission for a single run without editing any file. What is the verified mechanism?"
+    options:
+      a: "Pass the config key as an environment variable: any config key is overridable as VIBE_<KEY>, nested keys as VIBE_SECTION__KEY, e.g. VIBE_TOOLS__BASH__PERMISSION=always"
+      b: "Prefix the prompt with the key: vibe -p \"tools.bash.permission=always fix the build\""
+      c: "Set the key in trusted_folders.toml, which accepts config overrides"
+      d: "There is no per-run override; edit ~/.vibe/config.toml and revert it after"
+    correct: "a"
+    explanation: |
+      The environment layer maps any VibeConfigSchema key to VIBE_<KEY> with
+      nested keys addressed via a double underscore — the oracle's live
+      example is exactly VIBE_TOOLS__BASH__PERMISSION=always (PART-CONFIG
+      section 2.2). The override sits between project TOML and session
+      overrides in precedence, applies to that run's environment, and touches
+      no file. Config keys cannot be set from prompt text, and the trust
+      store is not a config file.
+    doc_reference:
+      file: "guide/core/settings-reference.md"
+      section: "Override any config field"
+      anchor: "#override-any-config-field"
+
+  - id: "mc-013"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "Your shell already exports MISTRAL_API_KEY, and ~/.vibe/.env also defines it with a different value. Which value does Vibe use, and what else is verified about that file?"
+    options:
+      a: "The .env value — dotfiles beat the shell"
+      b: "The shell value — .env fills only keys not already set non-empty in the process; the file also supports FIFO paths for secret-injector setups"
+      c: "The .env value, but only in trusted folders"
+      d: "Both are merged; the longer value wins"
+    correct: "b"
+    explanation: |
+      load_dotenv_values reads ~/.vibe/.env into the environment only for
+      keys not already set non-empty — shell env wins over .env (PART-CONFIG
+      section 2.2). The FIFO support exists so 1Password-style injectors can
+      serve the file. There is no trust scoping for the user .env (the user
+      layer is always trusted) and no merge behavior; first-set wins.
+    doc_reference:
+      file: "guide/core/settings-reference.md"
+      section: "The ~/.vibe/.env file"
+      anchor: "#vibeenv"
+
+  - id: "mc-014"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "You want durable notes distilled automatically from every turn — zero agent tokens, no new tools for the model. What is the verified native write path?"
+    options:
+      a: "A post_agent hook: it fires once per turn with session_id, transcript_path, and cwd on stdin; the script reads the transcript, distills, and appends — the write is the side effect"
+      b: "A post_tool hook with match = \"*\" — it sees every tool result and can append to memory files through its stdout"
+      c: "An ask_user_question prompt at session end, letting you write the note yourself"
+      d: "Enable the built-in memory skill, which ships with the CLI and consolidates sessions"
+    correct: "a"
+    explanation: |
+      The post_agent hook fires once per turn after the agent finishes with no
+      pending tool calls, and its stdin payload carries everything a memory
+      writer needs: session_id, transcript_path, cwd, and parent_session_id
+      inside subagents (PART-HOOKS sections 1, 3.2; the memory-systems page's
+      verified write pattern, section 3.1). The script emits allow and does
+      its append as a
+      side effect — deny is a retry mechanism, not a write path. No built-in
+      memory skill exists, and hook stdout replaces or appends to tool output;
+      it cannot write files for you, which is why the script itself does the
+      append.
+    doc_reference:
+      file: "guide/core/memory-systems.md"
+      section: "The verified write pattern: a post_agent hook"
+      anchor: "#31-the-verified-write-pattern-a-post_agent-hook"

@@ -1,0 +1,334 @@
+category: "Hooks and Guardrails"
+category_id: 5
+
+questions:
+  - id: "hk-001"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A QA hook must fire once after the agent finishes responding, with no pending tool calls. Which hooks.toml event type is it, and when exactly does it fire?"
+    options:
+      a: "post_tool — after each tool call completes"
+      b: "post_agent — once per turn, after the agent finishes responding with no pending tool calls"
+      c: "pre_tool — before the turn's first tool call"
+      d: "post_agent — after every assistant message, including ones that end in tool calls"
+    correct: "b"
+    explanation: |
+      There are exactly three event types (PART-HOOKS section 1):
+      pre_tool per tool call before the permission prompt, post_tool per tool
+      call iff the tool body ran, and post_agent once per turn after the
+      agent finishes with no pending tool calls. Option (d) is the subtle
+      trap: an assistant message that ends in a tool call does not end the
+      turn — post_agent waits until the response has no pending calls.
+      post_tool is per tool call, not per turn, so it is the wrong shape for a
+      once-per-turn check.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Quick reference — the three hooks.toml events"
+      anchor: "#quick-reference--the-three-hookstoml-events-both"
+
+  - id: "hk-002"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A pre_tool hook denies a bash call. Your post_tool audit hook — matched to every tool — logs nothing for that call. Why?"
+    options:
+      a: "The deny broke the hook chain; the audit hook crashed"
+      b: "post_tool fires if and only if the tool body actually ran; a pre_tool denial means the body never started, so post_tool never fires"
+      c: "post_tool hooks only fire for tools that succeed, and the denial marked the call failed"
+      d: "The audit hook needed match = \"bash\" rather than the default"
+    correct: "b"
+    explanation: |
+      post_tool fires iff the tool body actually ran (tool_status success,
+      failure, or cancelled); it does not fire on a pre_tool denial, a user
+      denial at the approval prompt, permission NEVER, or cancellation before
+      the body started (PART-HOOKS section 1). The live hook test confirmed
+      exactly this: the denied bash call produced pre_tool and post_agent
+      events but no post_tool event. Denials do not mark calls failed — the
+      call is skipped, a different status — and the default match is every
+      tool, so (d) is not the issue. Audit pipelines that need denied calls
+      must hook pre_tool too.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Quick reference — the three hooks.toml events"
+      anchor: "#quick-reference--the-three-hookstoml-events-both"
+
+  - id: "hk-003"
+    difficulty: "senior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A guard script crashes: non-zero exit, empty stdout, on a pre_tool hook with strict unset. What happens to the gated tool call?"
+    options:
+      a: "It is denied — a non-zero exit is the blocking signal"
+      b: "It proceeds — the failure is fail-open by default: a UI warning, and the gated action continues"
+      c: "It proceeds, but the hook is disabled for the rest of the session"
+      d: "The session pauses until the hook is fixed"
+    correct: "b"
+    explanation: |
+      Any non-zero exit routes to the failure path, and failure is fail-open
+      by default: a UI warning, and the gated action proceeds (PART-HOOKS
+      section 3.3). There is no blocking exit code in the contract at all —
+      exit codes carry no decision semantics; only printed JSON with
+      decision: deny blocks a call. The crash does disable nothing; the hook
+      runs again on the next matching call. The hardening switch is strict =
+      true, which turns failures into denials on tool hooks.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Decision semantics — the stdout contract"
+      anchor: "#decision-semantics--the-stdout-contract-both"
+
+  - id: "hk-004"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "You harden the same crashed guard script with strict = true. What is the behavior now, and on which hook types is strict even allowed?"
+    options:
+      a: "Failure denies the tool call with the failure reason — and strict is allowed on pre_tool and post_tool only; on post_agent it is a validation error"
+      b: "Failure denies the call — strict is allowed on all three event types"
+      c: "Failure denies the call on pre_tool; on post_tool it clears the tool output and stops the chain — and it is allowed on all three types"
+      d: "Failure retries the hook up to 3 times before denying"
+    correct: "a"
+    explanation: |
+      Strict is a tool-hook-only field: setting it on a post_agent hook is a
+      validation error at load time (PART-HOOKS section 2). On a strict
+      pre_tool, failure denies the call with the failure reason; on a strict
+      post_tool, failure clears tool_output_text and stops the chain
+      (PART-HOOKS section 3.3) — so the post_tool half of (c) is right but its
+      "allowed on all three" half is wrong. There is no retry-on-failure
+      mechanism; the max-3 retry counter belongs to post_agent deny, not to
+      hook failures.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Fail-open vs strict = true"
+      anchor: "#fail-open-vs-strict--true-both"
+
+  - id: "hk-005"
+    difficulty: "junior"
+    profiles: ["junior", "senior"]
+    question: "A hook exits 0 and prints: guard ok, all clear. What does Vibe do with that output?"
+    options:
+      a: "Treats it as the reason on an allow decision"
+      b: "Treats it as a hook failure — non-conforming stdout on exit 0 is a parse failure, warned by default and escalated under strict = true"
+      c: "Ignores stdout entirely; only the exit code matters"
+      d: "Passes the text to the model as additional context"
+    correct: "b"
+    explanation: |
+      The stdout contract has exactly three shapes: exit 0 + empty stdout is
+      passthrough; exit 0 + a valid JSON object is a structured response;
+      anything else on stdout — free text, broken JSON, a JSON scalar or
+      array — is a hook failure whose message is the parse error (PART-HOOKS
+      section 3.3). Free prose is never a reason, never additional context,
+      and never ignored: stdout is the decision channel, so a chatty script
+      is a failing script unless it prints JSON or nothing.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Decision semantics — the stdout contract"
+      anchor: "#decision-semantics--the-stdout-contract-both"
+
+  - id: "hk-006"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "You want one pre_tool hook to cover every tool published by two MCP servers named linear and serena. Which match value is verified to do it?"
+    options:
+      a: "match = \"linear,serena\""
+      b: "match = \"re:(linear|serena)_.*\" — MCP tools publish as alias underscore tool name, and re: patterns require a full match, case-insensitive"
+      c: "match = \"*linear*|*serena*\""
+      d: "match = \"linear_* serena_*\""
+    correct: "b"
+    explanation: |
+      MCP tools publish under the name server-alias underscore the remote tool
+      name, so a regex over that convention covers a whole server
+      (PART-HOOKS section 3.4). re: patterns compile case-insensitive and
+      require fullmatch; plain values are fnmatch globs. The oracle's example
+      uses exactly re:(linear|serena)_.* (PART-HOOKS section 3.8). There is no
+      comma-list or multi-pattern syntax for the single match field, and
+      omitting match means every tool — which would over-trigger here.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Matcher syntax"
+      anchor: "#matcher-syntax-both"
+
+  - id: "hk-007"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "Two pre_tool hooks both match a call: hook A allows and returns hook_specific_output.tool_input with a rewritten argument; hook B also allows with its own tool_input rewrite. What does the tool run with?"
+    options:
+      a: "The model's original arguments — pre_tool cannot rewrite"
+      b: "Hook A's rewrite — the first rewrite wins and later ones are ignored"
+      c: "Hook A's rewrite, then hook B rewrites A's output — rewrites compose left-to-right, each re-validated, and the result is what the permission prompt displays and the tool runs with"
+      d: "The two rewrites are merged key by key into one argument object"
+    correct: "c"
+    explanation: |
+      pre_tool allow with tool_input is a full replacement of the model's
+      arguments, and rewrites compose left-to-right across the chain: hook N
+      receives tool_input as rewritten by hooks before it, each rewrite is
+      re-validated immediately, and the first invalid rewrite aborts the chain
+      with a denial attributed to that hook (PART-HOOKS section 3.3). Rewritten
+      args are what the permission prompt displays, what the tool runs with,
+      and what later turns see — so audit logs record what ran, not what the
+      model first sent. There is no key-wise merge; later hooks see the
+      earlier hook's full object.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Decision semantics — the stdout contract"
+      anchor: "#decision-semantics--the-stdout-contract-both"
+
+  - id: "hk-008"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A post_tool hook watching a build tool denies, with a reason listing the failing checks. What does the model see?"
+    options:
+      a: "The call is marked skipped and the reason is wrapped as a tool_error — same as a pre_tool deny"
+      b: "The tool's output text is replaced with the reason; the pipeline continues, and the replacement is what the LLM receives"
+      c: "The turn is retried — post_tool deny injects the reason as a new user message"
+      d: "Nothing — post_tool hooks cannot deny"
+    correct: "b"
+    explanation: |
+      The tool already ran, so post_tool deny cannot skip the call: it
+      replaces tool_output_text with the reason (additional_context is
+      appended after, if present), the pipeline continues, and the replacement
+      is what the model receives (PART-HOOKS section 3.3). The retry behavior
+      in (c) belongs to post_agent deny, a different event with a different
+      mechanism — the confusion is easy because all three types use the same
+      decision JSON. Skipped-with-tool_error wrapping is the pre_tool deny
+      effect.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Decision semantics — the stdout contract"
+      anchor: "#decision-semantics--the-stdout-contract-both"
+
+  - id: "hk-009"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "A post_agent quality-gate hook denies every turn, printing valid deny JSON each time. What happens on the fourth denial within one user turn?"
+    options:
+      a: "The turn retries indefinitely — deny always injects a retry message"
+      b: "Retries stop: max 3 retries per user turn, then the hook gets 'Failed, retries exhausted (3/3)' and no more retries for that turn"
+      c: "The session ends with an error"
+      d: "The hook is auto-disabled after three denials"
+    correct: "b"
+    explanation: |
+      post_agent deny injects the reason as a new user message so the model
+      retries, tracked per hook name with _MAX_RETRIES = 3 per user turn; the
+      fourth denial gets "Failed, retries exhausted (3/3)" and no more
+      retries for that turn (PART-HOOKS section 3.7). The counter resets on
+      every new user message, and a hook that allows resets its own counter —
+      so the gate is per turn, not a lifetime cap, and nothing disables the
+      hook or kills the session.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "post_agent deny retries — max 3 per user turn"
+      anchor: "#post_agent-deny-retries--max-3-per-user-turn-both"
+
+  - id: "hk-010"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "Your hook command line is: command = \"./.vibe/hooks/guard.sh\" and it fails to find the script when you launch vibe from a subdirectory. Why, and what is the fix?"
+    options:
+      a: "The command runs with cwd set to the session's working directory — there is no project-dir placeholder, so reference scripts relative to the session cwd or by absolute path"
+      b: "A permissions issue — hooks cannot execute scripts in .vibe/"
+      c: "The hook needed match = \"bash\" to run at all"
+      d: "Hooks always run from the project root; the failure must be inside the script"
+    correct: "a"
+    explanation: |
+      Hook commands are shell commands run with cwd equal to the session cwd,
+      in their own process group — there is no project-dir placeholder
+      variable in the surface (PART-HOOKS sections 3.1, 3.8 example). A
+      relative path is resolved against wherever the session happens to be
+      running, which is why the oracle's own example and the docs pattern
+      reference scripts relative to the repo root or absolutely. The matcher
+      affects which calls trigger the hook, not where it runs.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Handler execution"
+      anchor: "#handler-execution-both"
+
+  - id: "hk-011"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "You define a hook named audit in both the project's .vibe/hooks.toml and ~/.vibe/hooks.toml. Which runs, and under what condition does the project file load at all?"
+    options:
+      a: "Both run, project first — duplicates run twice per event"
+      b: "The project entry wins; the user-file duplicate is recorded as a config issue and skipped. The project file loads only when the folder is trusted"
+      c: "The user entry wins — user hooks override project hooks"
+      d: "The project entry wins, and it loads regardless of trust; only config.toml is trust-gated"
+    correct: "b"
+    explanation: |
+      Load order is project .vibe/hooks.toml first (only when the folder is
+      trusted), then --add-dir roots, then ~/.vibe/hooks.toml; a duplicate
+      name means the first occurrence wins and the later one is dropped with
+      a "Duplicate hook name" issue (PART-HOOKS sections 1, 3.6). Trust gates
+      the whole project file — hooks are exactly as trust-gated as project
+      config, so in an untrusted cwd the project hooks silently do not exist.
+      Renaming is the only way to run both hooks.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "File locations, load order, and precedence"
+      anchor: "#file-locations-load-order-and-precedence-both"
+
+  - id: "hk-012"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "A hook spawns worker processes and exceeds its time budget. What happens at the timeout boundary?"
+    options:
+      a: "The hook process is killed but its workers survive, and the call proceeds"
+      b: "The whole process tree is killed (the hook runs in its own process group), and the result routes to the failure path — deny or clear only under strict"
+      c: "The timeout is unlimited by default; only per-hook timeout can introduce one"
+      d: "Vibe restarts the hook once with a doubled timeout before failing"
+    correct: "b"
+    explanation: |
+      Hooks run with start_new_session = true, so a timeout kill takes the
+      entire process tree, and the default timeout is 60 seconds, overridable
+      per hook (PART-HOOKS sections 3.1, 3.5). A timeout is a failure like any
+      other — fail-open by default, hard only under strict. There is no
+      restart-with-doubled-budget mechanism; a hook that spawns workers must
+      expect the tree to die with it.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Handler execution"
+      anchor: "#handler-execution-both"
+
+  - id: "hk-013"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A teammate's hooks.toml has a post_agent hook with match = \"bash\" and strict = true. What happens at load time?"
+    options:
+      a: "It loads; the two keys are ignored on post_agent hooks"
+      b: "It fails validation — match and strict are forbidden on post_agent; config-load errors surface as warnings and the offending hook is skipped"
+      c: "It loads and the match is applied to the turn's tool calls"
+      d: "It loads with strict applied and match ignored"
+    correct: "b"
+    explanation: |
+      match and strict on a post_agent hook are validation errors — "match is
+      only valid for tool hooks", and same for strict (PART-HOOKS section 2).
+      Config-load errors are fail-open too: the offending hook is skipped with
+      a warning, and the rest of the file loads. The neighboring confusion
+      (a) is true for unknown extra keys, which are tolerated silently — but
+      these two keys are known and invalid for the type, so the hook never
+      runs at all.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "hooks.toml schema"
+      anchor: "#hookstoml-schema-both"
+
+  - id: "hk-014"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "On the Unified Harness, how do the six typed hook points relate to your hooks.toml file, and where can a tool-name matcher be used?"
+    options:
+      a: "The six points replace hooks.toml on that backend; tool-name matchers are allowed on every point"
+      b: "They are a separate surface: the harness protocol declares six typed points, while the three-event hooks.toml protocol still runs on both backends; a tool-name matcher is allowed only on pre_tool_call and post_tool_call, all other points require always-match"
+      c: "The six points are aliases for the three hooks.toml types plus three new ones; matchers work as in hooks.toml"
+      d: "hooks.toml is ignored on the Unified Harness; hooks must be re-registered in the harness SDK"
+    correct: "b"
+    explanation: |
+      The Unified Harness Session Protocol declares six typed hook points —
+      pre_agent_turn, post_agent_turn, pre_llm_call, post_llm_call,
+      pre_tool_call, post_tool_call — a separate API from hooks.toml
+      (PART-HOOKS-UNIFIED section 6). The CLI hooks.toml protocol exists on
+      both backends ([both]), and as of 2.25.1 its hooks also run inside
+      subagents on the experimental harness. In the typed API,
+      ToolNameHookMatcher is allowed only on the two tool-call points; every
+      other point requires AlwaysHookMatcher. The names look translatable —
+      pre_tool versus pre_tool_call — but the surfaces are distinct and never
+      merged.
+    doc_reference:
+      file: "guide/core/hooks-events-reference.md"
+      section: "Unified-harness hook points"
+      anchor: "#unified-harness-hook-points-unified-harness"

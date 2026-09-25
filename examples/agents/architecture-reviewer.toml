@@ -1,0 +1,13 @@
+# Pair with prompts/architecture-reviewer.md, selected via system_prompt_id below.
+agent_type = "subagent"
+display_name = "Architecture Reviewer"
+description = "Reviews structural decisions in a plan or change set — coupling, cohesion, reversibility, scalability, security, testability, conventions — and reports blockers, concerns, and suggestions. Never edits files."
+safety = "safe"
+system_prompt_id = "architecture-reviewer"
+enabled_tools = ["read_file", "grep", "bash"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

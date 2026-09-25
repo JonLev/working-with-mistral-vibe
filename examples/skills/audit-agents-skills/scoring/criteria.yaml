@@ -1,0 +1,289 @@
+# Scoring criteria for the agents/skills audit
+# Version: 2.0.0 (Vibe edition)
+#
+# Point values mirror the checks in SKILL.md. Weight multiplies the
+# category's contribution to the file score:
+#   score = (points obtained / max_points) * 100
+# The production threshold is grade B (80%).
+
+# =============================================================================
+# SKILLS (32 points max)
+# =============================================================================
+
+skills:
+  max_points: 32
+
+  categories:
+    structure:
+      weight: 3
+      description: "The skill must parse and be findable"
+      criteria:
+        - id: S1.1
+          name: "Valid SKILL.md with frontmatter"
+          points: 3
+          detection: "file named SKILL.md, YAML frontmatter delimited by --- lines, first thing in the file, a YAML mapping"
+          check: "Frontmatter block parses as a mapping; text before the first --- is a parse error"
+
+        - id: S1.2
+          name: "Name valid"
+          points: 3
+          detection: "frontmatter name matches ^[a-z0-9]+(-[a-z0-9]+)*$, 1-64 chars"
+          check: "Regex on frontmatter.name"
+
+        - id: S1.3
+          name: "Name matches directory"
+          points: 3
+          detection: "frontmatter name equals the skill directory name"
+          check: "Compare name to parent directory; mismatch still loads under the frontmatter name but logs a warning"
+
+        - id: S1.4
+          name: "Description present"
+          points: 3
+          detection: "description field exists, 1-1024 characters, non-empty"
+          check: "Length check on frontmatter.description"
+
+    schema_hygiene:
+      weight: 2
+      description: "Only keys the CLI consumes; no dead source-product syntax"
+      criteria:
+        - id: S2.1
+          name: "No inert frontmatter keys"
+          points: 2
+          detection: "frontmatter keys are a subset of: name, description, license, compatibility, metadata, allowed-tools, user-invocable"
+          check: "Unknown keys are silently ignored by the CLI; list them for removal (typical leftovers: argument-hint, effort, when_to_use, model)"
+
+        - id: S2.2
+          name: "Description is a routing rule"
+          points: 2
+          detection: "description states when to use the skill, with anti-triggers where relevant"
+          check: "Description contains use/when/trigger phrasing or explicit not-for scope; a bare label like 'TDD workflow' fails"
+
+        - id: S2.3
+          name: "Optional keys well-formed"
+          points: 2
+          detection: "user-invocable is a boolean when present; allowed-tools is a space-delimited string or list when present; metadata is a string-to-string map"
+          check: "Type check on present optional keys"
+
+        - id: S2.4
+          name: "No dead argument or directory syntax"
+          points: 2
+          detection: "no $ARGUMENTS placeholder and no skill-directory environment variable in the body"
+          check: "Neither exists in the CLI; text after /skill-name arrives as extra instructions and the skill base directory is supplied by the skill tool"
+
+    content:
+      weight: 2
+      description: "Usability once loaded"
+      criteria:
+        - id: S3.1
+          name: "Methodology/workflow described"
+          points: 2
+          detection: "has a Workflow/Methodology/Process section or numbered steps"
+          check: "Section headers or numbered list present"
+
+        - id: S3.2
+          name: "Output format specified"
+          points: 2
+          detection: "states what the run produces (report, files, message format)"
+          check: "Section or content naming the deliverable"
+
+        - id: S3.3
+          name: "Examples provided"
+          points: 2
+          detection: "has usage examples or sample output"
+          check: "Usage/Examples section with concrete instances"
+
+        - id: S3.4
+          name: "Failure modes addressed"
+          points: 2
+          detection: "mentions error handling, fallbacks, or when to stop"
+          check: "Search for: error, failure, fallback, stop"
+
+    technical:
+      weight: 1
+      description: "Portability and safety"
+      criteria:
+        - id: S4.1
+          name: "No hardcoded user paths"
+          points: 1
+          detection: "no /Users/, /home/, or drive-letter absolute paths in instructions"
+          check: "Grep the body"
+
+        - id: S4.2
+          name: "No secrets"
+          points: 1
+          detection: "no password, secret, token, api_key, or credential values in plaintext"
+          check: "Grep for credential keywords outside of avoid-them guidance"
+
+        - id: S4.3
+          name: "Bundled scripts are safe"
+          points: 1
+          detection: "scripts that exist handle errors (set -e, trap, explicit exit codes, or exception handling)"
+          check: "If scripts/ exists, inspect error handling"
+
+        - id: S4.4
+          name: "No description overlap with other skills"
+          points: 1
+          detection: "description does not overlap more than 50% (Jaccard on words) with another skill"
+          check: "Compare across the scanned set; flag pairs above 0.5"
+
+# =============================================================================
+# AGENTS (32 points max)
+# =============================================================================
+
+agents:
+  max_points: 32
+
+  categories:
+    schema:
+      weight: 3
+      description: "The profile must parse and be discoverable"
+      criteria:
+        - id: A1.1
+          name: "TOML parses; stem is the name"
+          points: 3
+          detection: "NAME.toml parses; the agent name is the file stem"
+          check: "tomllib parse; no name field is read from the table"
+
+        - id: A1.2
+          name: "Safety valid"
+          points: 3
+          detection: "safety in: safe, neutral, destructive, yolo"
+          check: "Enum check on the safety key (visual hint; default neutral)"
+
+        - id: A1.3
+          name: "agent_type valid"
+          points: 3
+          detection: "agent_type in: agent, subagent (default agent)"
+          check: "Enum check; subagent means task-tool delegation only and is rejected by --agent"
+
+        - id: A1.4
+          name: "Identity fields present"
+          points: 3
+          detection: "display_name and description present and meaningful"
+          check: "Presence plus non-empty check; description drives model-side delegation decisions for subagents"
+
+    wiring:
+      weight: 2
+      description: "The profile must actually take effect"
+      criteria:
+        - id: A2.1
+          name: "system_prompt_id resolves"
+          points: 2
+          detection: "when set, prompts/<id>.md exists in project scope, user scope, or is a builtin id (cli, explore, tests, lean, minimal)"
+          check: "File existence per resolution order"
+
+        - id: A2.2
+          name: "No role text in instructions"
+          points: 2
+          detection: "the instructions field is parsed but not consumed as the system prompt; role guidance must live in prompts/<id>.md"
+          check: "Flag substantive instructions text; builtin ids and system_prompt_id are the consumed path"
+
+        - id: A2.3
+          name: "Override keys are valid config keys"
+          points: 2
+          detection: "every remaining TOML key is a config.toml field (active_model, allowed_models, system_prompt_id, enabled_tools, disabled_tools, bypass_tool_permissions, [tools.<tool>] tables, providers, models, ...)"
+          check: "Invalid override keys fail validation and the profile is dropped at discovery with a warning"
+
+        - id: A2.4
+          name: "Delegation wiring is sane"
+          points: 2
+          detection: "subagent profiles run headless with text-only results at depth 1; task tool approval defaults to the explore allowlist"
+          check: "For subagents: note that spawning needs an entry in [tools.task] allowlist or a one-time approval; primary agents need no such check"
+
+    content:
+      weight: 2
+      description: "The role prompt quality"
+      criteria:
+        - id: A3.1
+          name: "Role defined"
+          points: 2
+          detection: "the role prompt contains a 'You are' or 'Your role' statement"
+          check: "Case-insensitive search in prompts/<id>.md"
+
+        - id: A3.2
+          name: "Output format specified"
+          points: 2
+          detection: "role prompt defines the deliverable format"
+          check: "Section or content naming the output"
+
+        - id: A3.3
+          name: "Scope/limits defined"
+          points: 2
+          detection: "role prompt states what is out of scope or when not to use"
+          check: "Scope/Limits/When not to use content"
+
+        - id: A3.4
+          name: "Examples provided"
+          points: 2
+          detection: "at least three usage scenarios or worked examples"
+          check: "Count distinct examples"
+
+    design:
+      weight: 1
+      description: "Maintainability"
+      criteria:
+        - id: A4.1
+          name: "Single responsibility"
+          points: 1
+          detection: "description focused on one role; not a general-purpose catch-all"
+          check: "Description not containing: general, multi-purpose, various"
+
+        - id: A4.2
+          name: "No duplication"
+          points: 1
+          detection: "description does not overlap more than 50% with another agent"
+          check: "Jaccard similarity across the scanned set; flag above 0.5"
+
+        - id: A4.3
+          name: "Reasonable token budget"
+          points: 1
+          detection: "role prompt under roughly 8000 tokens (words x 1.3)"
+          check: "Estimate on prompts/<id>.md"
+
+        - id: A4.4
+          name: "No secrets"
+          points: 1
+          detection: "no credential values in the profile or role prompt"
+          check: "Grep for credential keywords"
+
+# =============================================================================
+# GRADING SCALE
+# =============================================================================
+
+grades:
+  A:
+    min: 90
+    max: 100
+    label: "Production-ready"
+    description: "Excellent quality, minimal risk"
+  B:
+    min: 80
+    max: 89
+    label: "Good (production threshold)"
+    description: "Meets production standards, minor improvements recommended"
+  C:
+    min: 70
+    max: 79
+    label: "Needs improvement"
+    description: "Not production-ready, address gaps first"
+  D:
+    min: 60
+    max: 69
+    label: "Significant gaps"
+    description: "Major issues, substantial rework needed"
+  F:
+    min: 0
+    max: 59
+    label: "Critical issues"
+    description: "Unsafe or unusable as-is"
+
+# =============================================================================
+# METADATA
+# =============================================================================
+
+metadata:
+  version: "2.0.0"
+  based_on:
+    - "Vibe skill frontmatter schema (name, description, license, compatibility, metadata, allowed-tools, user-invocable; unknown keys ignored)"
+    - "Vibe custom agent TOML schema (stem = name, display_name, description, safety, agent_type, config overrides, system_prompt_id)"
+    - "Vibe skill and agent discovery locations (project and user config trees)"

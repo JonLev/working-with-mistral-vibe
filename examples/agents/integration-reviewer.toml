@@ -1,0 +1,13 @@
+# Pair with prompts/integration-reviewer.md, selected via system_prompt_id below.
+agent_type = "subagent"
+display_name = "Integration Reviewer"
+description = "Checks that a plan's runtime integrations will actually connect: connection parameters, async/sync consistency, env var completeness, library API usage, and OTEL pipelines. Reports blockers; never edits files."
+safety = "safe"
+system_prompt_id = "integration-reviewer"
+enabled_tools = ["read_file", "grep", "bash", "web_fetch"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

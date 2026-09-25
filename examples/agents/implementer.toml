@@ -1,0 +1,10 @@
+# Pair with prompts/implementer.md, selected via system_prompt_id below.
+# active_model = "local" is the builtin devstral alias on the llamacpp provider;
+# it needs a local server. Delete the line to fall back to the default model.
+agent_type = "agent"
+display_name = "Implementer"
+description = "Mechanical execution of a bounded, fully specified task: the files, the pattern, and a reference example are given up front. Stops and reports instead of making design decisions."
+safety = "neutral"
+system_prompt_id = "implementer"
+active_model = "local"
+enabled_tools = ["read_file", "write_file", "edit", "grep", "bash"]

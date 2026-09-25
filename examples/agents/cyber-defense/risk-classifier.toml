@@ -1,0 +1,16 @@
+# Stage 3 of the cyber-defense pipeline. Pair with prompts/risk-classifier.md,
+# selected via system_prompt_id below. Spawned by the parent session with the
+# task tool; reads the anomalies file the parent persisted and returns the
+# risk classification JSON as its final message.
+agent_type = "subagent"
+display_name = "Risk Classifier"
+description = "Classify overall risk from detected anomalies. Third stage of the cyber-defense pipeline: applies the CRITICAL/HIGH/MEDIUM/LOW scoring matrix to cyber-defense-anomalies.json and returns one risk level with rationale and concrete recommended actions. Read-only."
+safety = "safe"
+system_prompt_id = "risk-classifier"
+enabled_tools = ["read_file", "grep"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

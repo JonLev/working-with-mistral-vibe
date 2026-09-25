@@ -1,0 +1,36 @@
+{
+  "name": "working-with-mistral-vibe-mcp",
+  "version": "0.1.0",
+  "description": "MCP server serving the working-with-mistral-vibe guide: search the generated reference index, read guide pages and sections, and list every page.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "working-with-mistral-vibe-mcp": "src/index.js"
+  },
+  "files": [
+    "src",
+    "content",
+    "scripts",
+    "server.json",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node src/index.js",
+    "sync:content": "node scripts/sync-content.mjs",
+    "sync:content:check": "node scripts/sync-content.mjs --check",
+    "smoke": "node scripts/smoke.mjs",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JonLev/working-with-mistral-vibe.git",
+    "directory": "mcp-server"
+  }
+}

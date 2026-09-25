@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.JonLev/working-with-mistral-vibe",
+  "title": "Working with Mistral AI Vibe",
+  "description": "Search the working-with-mistral-vibe guide — a community guide for Mistral AI's Vibe products — and read its pages and sections from any MCP-compatible client. Serves the guide's generated reference index as a resource.",
+  "repository": {
+    "url": "https://github.com/JonLev/working-with-mistral-vibe",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "working-with-mistral-vibe-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

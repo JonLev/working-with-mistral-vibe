@@ -1,0 +1,16 @@
+# Stage 2 of the cyber-defense pipeline. Pair with prompts/anomaly-detector.md,
+# selected via system_prompt_id below. Spawned by the parent session with the
+# task tool; reads the events file the parent persisted and returns the
+# anomalies JSON as its final message.
+agent_type = "subagent"
+display_name = "Anomaly Detector"
+description = "Detect statistical anomalies and attack patterns from structured security events. Second stage of the cyber-defense pipeline: applies volume, pattern and behavioral rules to cyber-defense-events.json and returns scored anomalies in its final message. Read-only, no risk classification."
+safety = "safe"
+system_prompt_id = "anomaly-detector"
+enabled_tools = ["read_file", "grep"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

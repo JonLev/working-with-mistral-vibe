@@ -1,0 +1,13 @@
+# Pair with prompts/adr-writer.md, selected via system_prompt_id below.
+agent_type = "agent"
+display_name = "ADR Writer"
+description = "Detects architectural decisions in recent changes, classifies their criticality, and drafts an Architecture Decision Record (Nygard format). Read-only: prints the ADR for you to save."
+safety = "safe"
+system_prompt_id = "adr-writer"
+enabled_tools = ["read_file", "grep", "bash"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

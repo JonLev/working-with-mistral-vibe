@@ -1,0 +1,72 @@
+# claude-term-allowlist.txt — sanctioned exceptions for the naming-policy gate
+# (scripts/gates/check-claude-terms.sh; style guide, "Naming policy (risk R1)").
+#
+# One repo-relative path per line (a trailing "/" allows the whole directory).
+# Comments start with "#". Every entry needs a justification; adding an entry
+# without one defeats the gate.
+#
+# The ONLY sanctioned place for these terms in *guide content* is the future
+# "coming from Claude Code" migration chapter. That chapter is
+# written from public feature surfaces only, and its path is pre-registered
+# below so the gate is ready the day it lands.
+
+# --- the gate's own machinery and docs (must be able to name the terms) ---
+
+# This file: the allowlist itself contains the term it polices.
+docs/workflows/claude-term-allowlist.txt
+
+# Maintainer doc: documents the gate and therefore names the gated terms.
+docs/workflows/repo-maintenance.md
+
+# --- fixed deliverables that predate the gate and must not be rewritten ---
+
+# Style guide: states the naming policy and quotes the gated terms as the
+# rule itself (fixed deliverable).
+guide/style-guide.md
+
+# Mechanics oracle: the public verification layer maps the source product's
+# concepts to Vibe equivalents by design. Sanitized for publication; keep it
+# free of non-public provenance.
+docs/mechanics/
+
+# --- mechanics catalogs ---
+
+# Plugins reference: documents Vibe's foreign-format plugin import adapters,
+# whose format identifiers and manifest paths (e.g. the `.claude-plugin/`
+# adapter) are literal public identifiers in the mistral-vibe source. The
+# feature cannot be documented without naming the formats it detects.
+guide/core/plugins.md
+
+# Settings reference: `api_style` is a Vibe config key whose accepted values
+# (per the adapter registry in the mistral-vibe source) include two literal
+# third-party protocol-style names. The value list cannot be documented
+# without naming them; they appear only as config values, never as prose
+# about another product.
+guide/core/settings-reference.md
+
+# --- surfaces content ---
+
+# The migration chapter. The only sanctioned content home for the source
+# product's name: the concept-mapping table and the "what does not transfer"
+# section cannot be written without naming the tool being migrated from.
+# Written from public feature surfaces only.
+guide/surfaces/migrating-from-claude-code.md
+
+# --- artifacts that must REFERENCE the migration page by path or title ---
+# The chapter's own filename contains the gated token, so any link to it
+# embeds the token in its href. These three are the only sanctioned
+# referencers: the index row, the generated spine link, and the generated
+# reference index. All three name the page and nothing else; the term never
+# appears in them outside the migration-page row/entry.
+
+# The guide index: lists every page; the migration row's title and href.
+guide/README.md
+
+# The generated monolith spine: routes every page via a relative link, so
+# the delegation entry embeds the path. Generated (drift-checked against
+# scripts/monolith.yaml), never hand-edited.
+guide/vibe-guide.md
+
+# The generated machine-readable index: mirrors every guide page's
+# frontmatter title and path. Generated (drift-checked), never hand-edited.
+machine-readable/reference.yaml

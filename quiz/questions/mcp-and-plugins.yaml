@@ -1,0 +1,347 @@
+category: "MCP, Connectors, and Plugins"
+category_id: 6
+
+questions:
+  - id: "mp-001"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A teammate runs 'vibe mcp add linear --url https://mcp.linear.app/mcp' with no auth flags and no --no-login. What happens?"
+    options:
+      a: "The server is persisted with auth.type = 'oauth' and a browser login starts immediately"
+      b: "The server is persisted with no auth and connects anonymously on first use"
+      c: "The command fails because OAuth options cannot be combined with a missing --api-key-env"
+      d: "The server is persisted with static auth and the token is read from the MISTRAL_API_KEY environment variable"
+    correct: "a"
+    explanation: |
+      Static auth is selected only when one of --header, --api-key-env,
+      --api-key-header, or --api-key-format is given; otherwise the server is
+      persisted with auth.type = "oauth" and browser login starts immediately
+      (PART-MCP section 1.1). Option d describes the static path, which requires
+      an explicit --api-key-env. Option c inverts a real rule: OAuth options
+      cannot be combined with STATIC options — here no static options were
+      given, so there is nothing to conflict.
+    doc_reference:
+      file: "guide/core/tools-reference.md"
+      section: "MCP and connector tools"
+      anchor: "#mcp-and-connector-tools"
+
+  - id: "mp-002"
+    difficulty: "junior"
+    profiles: ["junior", "senior"]
+    question: "You run 'vibe mcp add fetcher --transport stdio' and it exits with an argparse error (exit code 2). Why?"
+    options:
+      a: "The stdio transport requires a URL and none was given"
+      b: "stdio servers must be added with the /mcp add in-session command, not the CLI"
+      c: "The stdio transport requires --command, and none was given"
+      d: "The name 'fetcher' contains characters that are not allowed in server names"
+    correct: "c"
+    explanation: |
+      --command is required for --transport stdio; the live probe
+      'vibe mcp add badstdio --transport stdio' fails with exactly that error
+      (PART-MCP section 1.1). stdio launches a local process from command/args/
+      env, so it has no URL (option a) and no auth fields at all. The server name
+      'fetcher' is a valid normalized alias (option d), and the CLI is the
+      correct surface for stdio servers — the in-session /mcp add is an
+      OAuth-only shortcut for hosted servers.
+    doc_reference:
+      file: "guide/core/tools-reference.md"
+      section: "MCP and connector tools"
+      anchor: "#mcp-and-connector-tools"
+
+  - id: "mp-003"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A CI host has no display and no OS keyring backend. You need an HTTP MCP server whose token lives in an environment variable the runner provides. Which configuration is the verified one?"
+    options:
+      a: "vibe mcp add with OAuth and --no-login, then run /mcp login from the CI job on first use"
+      b: "vibe mcp add with --api-key-env naming the variable, so auth.type = 'static' reads the token from the environment at request time"
+      c: "vibe mcp add with --header 'Authorization=Bearer <token>' so the header is stored in config.toml with the server"
+      d: "OAuth with the loopback redirect port forwarded over SSH, so the browser login can complete remotely"
+    correct: "b"
+    explanation: |
+      Static auth (auth.type = "static") reads the token from the env var named
+      by api_key_env and formats it into api_key_header (default Authorization,
+      "Bearer {token}") at request time — designed for headless use
+      (PART-MCP sections 1.1, 1.4). OAuth is unavailable on machines with no
+      keyring backend: they raise MCPOAuthHeadlessError telling the user to
+      switch to static auth (option a fails, and --no-login only defers the
+      login). Option c works but stores the secret in plaintext in config.toml
+      — --header values are persisted verbatim, which is why the CLI's own help
+      says to use --api-key-env for tokens. Option d (redirect_port 47823 over
+      SSH) is a real remote-login technique, but it still needs a keyring to
+      store the tokens.
+    doc_reference:
+      file: "guide/security/security-hardening.md"
+      section: "3.1 MCP servers: no YAML registry, no per-project dotfile — TOML and the user layer"
+      anchor: "#31-mcp-servers-no-yaml-registry-no-per-project-dotfile--toml-and-the-user-layer"
+
+  - id: "mp-004"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "You added an MCP server with OAuth, and since then its URL changed in config.toml. After the change the server asks for login again on every start. Why?"
+    options:
+      a: "OAuth tokens expire after every session and Vibe re-authenticates from scratch each time"
+      b: "The keyring stores a fingerprint of the server config, and a mismatch marks the stored tokens as stale"
+      c: "The redirect port 47823 is occupied, so the loopback callback cannot complete"
+      d: "OAuth servers can only authenticate through the browser, and browser state was cleared"
+    correct: "b"
+    explanation: |
+      Vibe stores OAuth tokens, client info, and a config fingerprint in the OS
+      keyring under mcp-oauth:<alias>:tokens, :client_info, and :fingerprint;
+      if the fingerprint no longer matches the current config on load, the
+      stored tokens are treated as stale and re-authentication is required
+      (PART-MCP section 1.5). Tokens persist across sessions otherwise (option
+      a). The loopback port (option c) and browser (option d) are not the
+      mechanism — the drift check is. Note also that vibe mcp remove on an OAuth
+      server deletes the stored tokens, client info, and fingerprint.
+    doc_reference:
+      file: "guide/security/security-hardening.md"
+      section: "3.1 MCP servers: no YAML registry, no per-project dotfile — TOML and the user layer"
+      anchor: "#31-mcp-servers-no-yaml-registry-no-per-project-dotfile--toml-and-the-user-layer"
+
+  - id: "mp-005"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "An MCP server named 'serena' publishes a tool called 'list_symbols'. How do you configure Vibe so every call to that tool requires approval?"
+    options:
+      a: "Add 'serena.list_symbols' to the bash denylist, since MCP tools run through the shell"
+      b: "Set [tools.serena_list_symbols] permission = 'ask' in config.toml, keyed by the published name"
+      c: "Add 'list_symbols' to the server's disabled_tools list in the [[mcp_servers]] entry"
+      d: "It already requires approval — remote MCP tools default to permission 'never' until explicitly enabled"
+    correct: "b"
+    explanation: |
+      MCP tools publish as {server_alias}_{tool} — serena_list_symbols, not
+      serena.list_symbols — and are configured in [tools.<published name>]
+      exactly like built-in tools; 'ask' makes every call prompt unless
+      pre-approved (PART-MCP sections 1.7-1.8). Option c uses a real key but
+      wrong semantics: disabled_tools hides the tool entirely ("discovered but
+      hidden"), it does not gate calls. Option a is the wrong tool family — MCP
+      tools are per-call proxies, not shell commands. Option d is backwards:
+      MCP proxy tools default to ask, not never.
+    doc_reference:
+      file: "guide/core/tools-reference.md"
+      section: "MCP and connector tools"
+      anchor: "#mcp-and-connector-tools"
+
+  - id: "mp-006"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "Your [[mcp_servers]] entry for 'fetcher' has disabled_tools = [\"fetcher_delete_all\"] but the agent still sees and calls that tool. What did the team get wrong?"
+    options:
+      a: "disabled_tools only takes effect when the whole server also has disabled = true"
+      b: "disabled_tools takes tool names WITHOUT the server prefix — the entry must be \"delete_all\" to hide fetcher_delete_all"
+      c: "disabled_tools must be set in the [[connectors]] table instead, because the server publishes proxy tools"
+      d: "The entry needs the glob form \"fetcher_*\" — plain names are matched as exact published tool names"
+    correct: "b"
+    explanation: |
+      disabled_tools lists tool names WITHOUT the server prefix:
+      ["delete_all"] hides {alias}_delete_all, so the prefixed entry
+      "fetcher_delete_all" matches nothing and the tool stays visible
+      (PART-MCP sections 1.2, 1.9; PART-CONFIG section 1.4). Option a misstates
+      the two-level mechanism — disabled = true hides the whole server;
+      disabled_tools hides named tools on its own. Option d inverts the
+      matching: names are compared unprefixed, not as published names, and no
+      glob is required. Option c confuses MCP servers with connectors, which
+      share the same two-level mechanism but live in the [[connectors]] table.
+    doc_reference:
+      file: "guide/core/tools-reference.md"
+      section: "MCP and connector tools"
+      anchor: "#mcp-and-connector-tools"
+
+  - id: "mp-007"
+    difficulty: "senior"
+    profiles: ["junior", "senior", "power"]
+    question: "A colleague tries to add an API-key-authenticated MCP server from inside a session with '/mcp add <url>'. Why does Vibe tell them to edit config.toml instead?"
+    options:
+      a: "Because /mcp add only supports servers that are already configured, and this one is new"
+      b: "Because /mcp add is an OAuth-only shortcut; static/API-key auth is configured in config.toml"
+      c: "Because in-session commands cannot write to the user config layer, only the CLI can"
+      d: "Because /mcp add defaults to the http transport and this server needs streamable-http"
+    correct: "b"
+    explanation: |
+      /mcp add is an OAuth-only shortcut for hosted MCP servers — its own usage
+      text says "For API-key/static auth, edit config.toml" — and it errors if
+      the URL is already configured with static auth (PART-MCP section 1.6).
+      Option d misreads the help: /mcp add defaults to streamable-http and
+      takes --transport http for servers documented with the plain HTTP
+      transport, so both remote transports are supported. Option c is backwards
+      — vibe mcp add and /mcp add both persist to the user layer; the
+      restriction is about auth type, not write access. /mcp and /connectors are
+      aliases of the same browser.
+    doc_reference:
+      file: "guide/core/tools-reference.md"
+      section: "MCP and connector tools"
+      anchor: "#mcp-and-connector-tools"
+
+  - id: "mp-008"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "A team on the legacy backend discovers the Linear connector and wants its tools immediately, with no [[connectors]] entry in config.toml. A second team runs the unified harness with --experimental-harness. Who gets working connector tools out of the box?"
+    options:
+      a: "Both — connectors are enabled by default everywhere as long as enable_connectors is true"
+      b: "Neither — a connector always needs an explicit [[connectors]] entry with disabled = false"
+      c: "Only the unified-harness team — ready connectors are enabled by default in memory there; the legacy backend keeps a discovered connector disabled until an explicit entry exists"
+      d: "Only the legacy team — the unified harness disables all connectors until /connectors confirms them"
+    correct: "c"
+    explanation: |
+      The default-enable split is backend-dependent: the legacy backend passes
+      implicit_source_enabled=False, so a discovered connector stays disabled
+      until an explicit [[connectors]] entry exists; the unified harness enables
+      ready connectors by default in memory, and the default is not written to
+      TOML (PART-CONNECTORS section 2.4). In both cases enable_connectors, an
+      explicit [[connectors]] entry, and tool allow/deny lists always take
+      precedence. Discovery itself needs enable_connectors = true AND a
+      configured Mistral provider whose API key resolves — so option a is
+      doubly wrong: it ignores both the backend split and the discovery
+      conditions.
+    doc_reference:
+      file: "guide/core/tools-reference.md"
+      section: "MCP and connector tools"
+      anchor: "#mcp-and-connector-tools"
+
+  - id: "mp-009"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A teammate wants NO connector tools in their sessions. Which single verified setting achieves that?"
+    options:
+      a: "Set enable_connectors = false in config.toml — no connector registry is created at all"
+      b: "Delete ~/.vibe/connector_bootstrap_cache.json — the cache is the connector registry"
+      c: "Run /mcp logout for every connector alias"
+      d: "Add 'connector_*' to disabled_tools — but keep enable_connectors true so discovery still works"
+    correct: "a"
+    explanation: |
+      enable_connectors is the master switch (default true); setting it to
+      false means no connector registry is created at all (PART-CONNECTORS
+      sections 2.1-2.2). The bootstrap cache (option b) is a 600-second cache of
+      discovery results under ~/.vibe, not the registry — deleting it just
+      forces a re-fetch. Option d is a workable belt-and-braces narrowing
+      (disabled_tools applies to connector tools by published name), but it is
+      not the single verified switch, and it keeps the discovery egress alive.
+      Option c only clears auth state for already-authenticated connectors.
+    doc_reference:
+      file: "guide/core/tools-reference.md"
+      section: "MCP and connector tools"
+      anchor: "#mcp-and-connector-tools"
+
+  - id: "mp-010"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "You audit a plugin package against the Agent Plugins 1.0 spec. Its plugin.json has a valid $schema and name, but also an unknown top-level field 'release-notes'. What does a conforming Vibe loader do?"
+    options:
+      a: "Rejects the whole plugin — the manifest's top-level field set is closed"
+      b: "Reports the unknown field, ignores it, and continues loading the plugin"
+      c: "Loads the plugin but disables its portable skills until the field is removed"
+      d: "Treats the unknown field as an extension namespace and validates its contents"
+    correct: "b"
+    explanation: |
+      Unknown top-level fields must be reported and ignored, with loading
+      continuing and no semantics assigned; only other schema violations
+      (missing or invalid required fields, a bad name, a bad author field) are
+      fatal for the whole plugin (PART-PLUGINS section 3.1, spec sections 5.2,
+      11.3). Option a is the tempting over-reading of "closed field set" — the
+      closure governs what clients validate, and the spec explicitly makes
+      unknown fields non-fatal. Extension namespaces live under the extensions
+      object keyed by reverse-domain names (option d), not at the top level.
+    doc_reference:
+      file: "guide/core/plugins.md"
+      section: "The Agent Plugins 1.0 manifest"
+      anchor: "#the-agent-plugins-10-manifest--unified-harness"
+
+  - id: "mp-011"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A plugin ships agents, hooks, and commands alongside its skills and mcp.json. Per the Agent Plugins 1.0 spec, which of those are portable components in v1?"
+    options:
+      a: "All five — a conforming client must resolve every component type a package contains"
+      b: "Skills and MCP servers only; agents, hooks, and commands are not portable and live under client extension namespaces"
+      c: "Skills, MCP servers, and commands; agents and hooks were deferred to v2"
+      d: "Whichever components the plugin declares in its manifest's extensions object"
+    correct: "b"
+    explanation: |
+      v1 defines exactly two portable component types: skills at
+      skills/<dir>/SKILL.md and MCP servers at a root mcp.json. Agents, hooks,
+      and commands are named by the spec's design rationale as too
+      client-specific for a stable portable contract; they live under client
+      extension namespaces — on Vibe that is ai.mistral.vibe, whose extension
+      directory adds runtime hooks, knowledge, agents, libraries, and connectors
+      (PART-PLUGINS sections 3.1-3.2). Option d confuses the mechanism: the
+      extensions object carries client extension data, but it does not make
+      non-portable components portable.
+    doc_reference:
+      file: "guide/core/plugins.md"
+      section: "Portable components: exactly two in v1"
+      anchor: "#portable-components-exactly-two-in-v1--unified-harness"
+
+  - id: "mp-012"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "Vibe imports a plugin package authored for another agent product's format. Several components of that format have no Vibe equivalent. What happens to them?"
+    options:
+      a: "They are converted to the closest Vibe capability so the whole package keeps working"
+      b: "The import fails and the whole package is rejected as non-conforming"
+      c: "They are retained as package data and reported as unsupported components — never converted, and bundled executable code is never executed"
+      d: "They are silently dropped, and the rest of the package loads without any record of them"
+    correct: "c"
+    explanation: |
+      Each foreign-format adapter returns an adapted package plus diagnostics
+      and a list of AdaptedUnsupportedComponent entries: components whose
+      semantics do not map are retained as package data and reported, not
+      converted into Unified Harness capabilities (PART-PLUGINS section 3.6,
+      ADR 0007). The opencode adapter goes further: its bundled executables are
+      recorded as unsupported — bundled code is never executed. Option b
+      confuses component failure with package failure: component failures are
+      non-fatal and skip-and-continue. Option d is the compliance failure mode
+      the reporting requirement exists to prevent.
+    doc_reference:
+      file: "guide/core/plugins.md"
+      section: "Foreign-format import adapters"
+      anchor: "#foreign-format-import-adapters--unified-harness"
+
+  - id: "mp-013"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "A plugin's SKILL.md sits in a directory that is a symlink pointing outside the plugin root. What does the Vibe plugin loader do?"
+    options:
+      a: "Follows the symlink, because skills are loaded via the skill loader which resolves paths freely"
+      b: "Rejects the entire session's plugin resolution as a containment violation"
+      c: "Skips that skill (or drops the plugin if plugin.json itself escapes the root) — every discovered file must resolve inside the plugin root, and a bad component is never fatal for the session"
+      d: "Loads the skill but marks it private, with visibility PRIVATE like runtime hooks"
+    correct: "c"
+    explanation: |
+      Symlink containment is enforced: every file discovered, read, or executed
+      on the plugin's behalf must resolve within the plugin root; a SKILL.md
+      resolving outside it is skipped, and if plugin.json itself does not
+      resolve within the root the whole plugin is rejected. The loader "never
+      raises on a bad plugin: it is dropped and reported through issues"
+      (PART-PLUGINS section 3.2, spec section 4.1) — so option b overstates the
+      blast radius to the session. Option d garbles a real detail: visibility
+      PRIVATE belongs to runtime hooks' published names, not skills.
+    doc_reference:
+      file: "guide/core/plugins.md"
+      section: "Failure semantics"
+      anchor: "#failure-semantics--unified-harness"
+
+  - id: "mp-014"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "Your team publishes a plugin under both ~/.vibe/plugins/acme-tools/ and <project>/.vibe/plugins/acme-tools/ with different contents. A session in that project resolves plugins. What is the outcome, and how would a colleague install a plugin if Vibe had a marketplace command?"
+    options:
+      a: "The project copy wins for the same plugin name; and there is no marketplace or install-registry concept in the source — getting the package onto disk is your problem"
+      b: "The user copy wins because user config is always trusted; and plugins install with vibe plugin install from the registry"
+      c: "Both copies load and their tools are namespaced per scope; and plugins are installed by committing them to the repo only"
+      d: "The loader errors on the duplicate name and refuses to resolve either; and installation rides the skills registry at api.mistral.ai"
+    correct: "a"
+    explanation: |
+      Scope precedence is project beats user for the same plugin name;
+      same-scope duplicates are removed, and namespace collisions across plugins
+      are removed (PART-PLUGINS section 3.3). No marketplace, install-registry,
+      or install command exists anywhere in the 2.25.0 or main source — a grep
+      for "marketplace" returns nothing — so distribution is your own clone,
+      copy, or script (option a). Option d invents a failure the loader does not
+      have, and option b inverts precedence; the skills registry is a separate
+      experimental mechanism gated by experimental_enable_registry_skills, not a
+      plugin channel.
+    doc_reference:
+      file: "guide/core/plugins.md"
+      section: "Where plugins live on disk"
+      anchor: "#where-plugins-live-on-disk--unified-harness"

@@ -1,0 +1,19 @@
+// Linter: markdownlint-cli2 — subtree override for guide/diagrams/.
+//
+// The diagrams' dual-format pattern (Mermaid block + <details><summary>ASCII
+// version</summary> ... </details> fallback) requires the details/summary
+// HTML elements by design — the same pattern as the source repo this guide
+// adapts. MD033 (no-inline-html) is therefore disabled for exactly those two
+// elements in this subtree and nowhere else. Every other default rule from
+// the root config still applies here.
+{
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD060": false,
+    "MD025": { "front_matter_title": "" },
+    "MD033": {
+      "allowed_elements": ["details", "summary"]
+    }
+  }
+}

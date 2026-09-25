@@ -1,0 +1,15 @@
+# Pair with prompts/planner.md, selected via system_prompt_id below.
+# Complements the builtin plan agent: that one explores and saves plan files;
+# this one emits a hand-off plan in the response and writes nothing at all.
+agent_type = "agent"
+display_name = "Planner"
+description = "Read-only decomposition and planning: explores the codebase, orders implementation steps with file paths and rationale, and flags risks and open questions. Emits the plan in the response; never writes files."
+safety = "safe"
+system_prompt_id = "planner"
+enabled_tools = ["read_file", "grep", "bash"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

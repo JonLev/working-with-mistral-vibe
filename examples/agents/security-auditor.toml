@@ -1,0 +1,13 @@
+# Pair with prompts/security-auditor.md, selected via system_prompt_id below.
+agent_type = "subagent"
+display_name = "Security Auditor"
+description = "OWASP Top 10 audit: access control, cryptography, injection, insecure design, misconfiguration, dependencies, authentication, data integrity, logging, SSRF. Reports severity-classified findings; never edits files."
+safety = "safe"
+system_prompt_id = "security-auditor"
+enabled_tools = ["read_file", "grep", "bash"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

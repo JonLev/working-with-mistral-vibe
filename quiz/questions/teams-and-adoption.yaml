@@ -1,0 +1,366 @@
+category: "Teams and Adoption"
+category_id: 9
+
+questions:
+  - id: "ta-001"
+    difficulty: "senior"
+    profiles: ["junior", "senior", "pm"]
+    question: "Compliance asks your team to mark which commits were AI-assisted. A colleague sets include_commit_signature in config.toml and reports the task done. What is the correct assessment?"
+    options:
+      a: "Correct — include_commit_signature adds the attribution trailer to agent-authored commits"
+      b: "Wrong twice: Vibe commits carry no attribution trailer of any kind, and include_commit_signature governs what conversation context Vibe includes, not commit trailers — attribution is a policy choice you implement with an AGENTS.md rule and/or a hook on commit commands"
+      c: "Half right — include_commit_signature governs attribution, but it defaults to false and must be enabled per project"
+      d: "Wrong — attribution requires the Enterprise plan; the config key only records usage for billing"
+    correct: "b"
+    explanation: |
+      Live-verified on 2.25.7 (T8): a commit authored during a Vibe session
+      carries no trailer at all — no co-author line, no generated-with marker —
+      and there is no config key for commit attribution; the closest-sounding
+      key, include_commit_signature, governs conversation context, not commit
+      trailers (guide/ops/ai-traceability.md, The Attribution Gap; PART-CONFIG
+      section 1.10). The two verified mechanisms are an AGENTS.md trailer rule
+      (model-followed, nothing enforces) and a pre_tool or post_tool hook on
+      bash commit commands (harness-enforced; the gate variant sets
+      strict = true). Option d invents a plan-gated feature.
+    doc_reference:
+      file: "guide/ops/ai-traceability.md"
+      section: "The Attribution Gap"
+      anchor: "#the-attribution-gap"
+
+  - id: "ta-002"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "Your attribution gate is a pre_tool hook, strict = true, match = 'bash', that denies any 'git commit' whose command string lacks 'Assisted-by'. The team notices some unattributed commits still land. What is the documented hole?"
+    options:
+      a: "The hook is fail-open — a crashed guard lets commits through; strict does not apply to pre_tool"
+      b: "The hook inspects the command string, but a commit message supplied via 'git commit -F <file>', an editor, or --amend may not show the trailer in the command at all — the check sees the command, not the resulting message; pair it with the AGENTS.md rule and a CI check on finished history"
+      c: "post_tool would have been the right type — it fires after the commit exists and can un-commit when the trailer is missing"
+      d: "The match pattern 'bash' misses git_bash, so commits run through a tool the hook never sees"
+    correct: "b"
+    explanation: |
+      The hook sees tool_input.command; a message provided by file, editor, or
+      amend never appears there, so the string check has known holes — the page
+      says to pair the gate with Mechanism A (the model knows the rule) and CI
+      checks on the finished history for hard guarantees
+      (guide/ops/ai-traceability.md, section 4.2 limits). Option a is
+      backwards: strict on a pre_tool failure DENIES, and T2/T3 live-verified
+      both directions. Option c invents an un-commit power — post_tool can
+      observe and warn but runs after the commit exists. Option d is a real
+      cross-platform subtlety in general, but the documented hole in the
+      scenario is the command-string blindness.
+    doc_reference:
+      file: "guide/ops/ai-traceability.md"
+      section: "4.2 Mechanism B — a hook on the bash tool"
+      anchor: "#42-mechanism-b--a-hook-on-the-bash-tool-stable"
+
+  - id: "ta-003"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "An SRE registers a post_tool hook that appends every tool-call payload to a JSONL activity log, then sets strict = true on it so logging never silently fails. What does the observability page say about that choice?"
+    options:
+      a: "Correct — strict makes the logger reliable, which is what an audit trail needs"
+      b: "Counterproductive — hooks fail open by default and loggers should stay that way: a broken logger should cost you a log line, not the work, whereas a crashed strict hook denies the tool call. strict is for guards, not observers"
+      c: "Harmless but useless — post_tool loggers do not receive tool_output_text, so the log is incomplete either way"
+      d: "Wrong tool — activity logging belongs in the OTel export, which is on by default"
+    correct: "b"
+    explanation: |
+      A broken fail-open logger emits a UI warning and the tool call proceeds —
+      you lose a log line, not the work. Setting strict = true turns a crash
+      into a DENIAL of the tool call (live-verified on 2.25.7, T2 vs T3), which
+      is the right behavior for a guard and the wrong behavior for an observer
+      (guide/ops/observability.md, A hook logger). Option c is factually wrong:
+      post_tool carries tool_status, tool_output, tool_output_text, tool_error,
+      and duration_ms. Option d is doubly wrong — enable_otel defaults to
+      false, and the hook logger is the verified tool-level capture path.
+    doc_reference:
+      file: "guide/ops/observability.md"
+      section: "A hook logger: tool-level capture"
+      anchor: "#a-hook-logger-tool-level-capture"
+
+  - id: "ta-004"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A developer wants to resume yesterday's session, which started in a --worktree checkout and was last used from a different terminal. Which invocation reliably reaches it?"
+    options:
+      a: "'vibe -c' — the last-session pointer is global, so any terminal continues the most recent session"
+      b: "'vibe --resume <id>' — it resolves globally with partial IDs supported, because -c and the picker are folder-scoped and only see sessions started in that worktree"
+      c: "'vibe --resume' with no ID — the picker lists all sessions on the machine, sorted by recency"
+      d: "None — a session started in a worktree is deleted when the worktree is cleaned up"
+    correct: "b"
+    explanation: |
+      -c uses a per-terminal last-session pointer and falls back to the most
+      recent session in the current directory; the /resume picker is
+      folder-scoped the same way, and worktrees have their own session scope —
+      so crossing worktrees requires the global --resume <id>, which accepts
+      partial IDs and takes the latest on multiple matches (PART-SESSIONS
+      sections 3.2-3.3; PART-WORKTREES). Option c fails in two ways: the picker
+      is folder-scoped, and a bare --resume is an error in -p mode. Sessions
+      are not deleted with worktrees (option d); session logging just needs to
+      stay enabled or resume raises an error.
+    doc_reference:
+      file: "guide/ops/observability.md"
+      section: "Finding and resuming sessions"
+      anchor: "#finding-and-resuming-sessions"
+
+  - id: "ta-005"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "Leadership asks for exact per-team monthly spend on agentic coding, computed by Vibe itself. What does the observability page actually provide?"
+    options:
+      a: "A /cost command that reports tokens and dollars per session and per team"
+      b: "The meta.json stats field, which itemizes tokens and cost per session for exact accounting"
+      c: "No verified in-CLI token or cost readout: /status displays agent statistics without oracle-itemized contents, meta.json's stats field is verified but its subfields are not, Mistral token prices are not in the oracle — the page gives an estimation method with reader-supplied rates, and --max-price/--max-tokens bound only -p runs"
+      d: "OTel export with otel_redaction = 'strict', which emits per-session cost spans"
+    correct: "c"
+    explanation: |
+      The verified cost surfaces are --max-price and --max-tokens (programmatic
+      mode only), the per-model input_price/output_price fields that feed the
+      cap, /status, and the session store's stats field — whose contents the
+      oracle does not itemize. The page is explicit that Mistral token prices
+      are not in the oracle, so cost is an estimate with reader-supplied rates,
+      directional rather than accounting (guide/ops/observability.md, Cost
+      tracking; PART-CLI; PART-CONFIG section 1.1). Options a and b assert
+      commands and schemas the oracle does not record. Option d: the OTel keys
+      are verified but span contents are not, and otel_redaction modes are an
+      enum without verified semantics.
+    doc_reference:
+      file: "guide/ops/observability.md"
+      section: "Cost tracking"
+      anchor: "#cost-tracking"
+
+  - id: "ta-006"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "A dashboard vendor claims their product tracks 'all four DORA metrics'. Per the team-metrics page, what is wrong with that claim, and what should you check before buying?"
+    options:
+      a: "Nothing — DORA has four metrics, so the vendor's count is correct"
+      b: "DORA has five metrics now: MTTR was replaced by Failed Deployment Recovery Time in 2023 and Deployment Rework Rate was added in 2024 — verify the tool exposes the current five-metric model and DORA's definitions, because dashboards may still label all-cause MTTR as a DORA metric"
+      c: "DORA has seven metrics since the 2025 report replaced the metric list with seven team archetypes"
+      d: "DORA is obsolete for AI-augmented teams; the page recommends replacing it with SPACE"
+    correct: "b"
+    explanation: |
+      The official metric history records two changes many dashboards miss:
+      MTTR was renamed and narrowed to Failed Deployment Recovery Time in 2023,
+      and Deployment Rework Rate was added in 2024 — the current model has five
+      metrics, and the 2025 report moved from Elite/High/Medium/Low clusters to
+      seven team archetypes used for interpretation, not as universal targets
+      (guide/ops/team-metrics.md, From Four Keys to Five Metrics). Option c
+      conflates the archetypes with metrics. Option d is backwards: the page
+      keeps DORA as the delivery-system foundation and adds SPACE for the
+      people inside it — both are necessary, neither is sufficient alone.
+    doc_reference:
+      file: "guide/ops/team-metrics.md"
+      section: "From Four Keys to Five Metrics"
+      anchor: "#from-four-keys-to-five-metrics"
+
+  - id: "ta-007"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "After adopting agents, your team's sprint velocity, commits per day, and lines written all jumped 40 percent. A stakeholder wants to celebrate. What does the metrics page say about reading these numbers?"
+    options:
+      a: "Celebrate — velocity and commit count are SPACE activity metrics and activity is the core signal"
+      b: "Distrust them — activity metrics are the easiest to measure and the easiest to game, and agents inflate every activity metric by construction; the informative signals (bug escape rate, time-to-understand a PR, review time, developer confidence) are slower and harder to wire up"
+      c: "Normalize them by team size first; per-capita velocity is a reliable quality signal"
+      d: "Treat them as quality signals only if CFR stayed flat, which makes velocity a DORA metric"
+    correct: "b"
+    explanation: |
+      The core tension the page opens with: activity metrics spike immediately
+      on AI adoption while quality and maintainability signals are slower and
+      harder to track — and agents inflate every activity metric by
+      construction, which is why sprint velocity, lines of code, and commits
+      per day all sit on the vanity-metrics drop list (guide/ops/team-metrics.md,
+      The Measurement Problem and Vanity Metrics to Drop). Option a quotes SPACE
+      accurately and draws the wrong conclusion — the page's critical note on
+      Activity is that it is easiest to game and that activity metrics are
+      inputs, not outcomes. Options c and d try to rehabilitate velocity by
+      arithmetic; the page replaces it with cycle time and deployment
+      frequency.
+    doc_reference:
+      file: "guide/ops/team-metrics.md"
+      section: "The Measurement Problem"
+      anchor: "#the-measurement-problem"
+
+  - id: "ta-008"
+    difficulty: "power"
+    profiles: ["senior", "power", "pm"]
+    question: "A vendor deck cites studies showing 20-64 percent developer productivity gains from AI coding tools and proposes them as planning targets for your rollout. How does the guide tell you to treat those figures?"
+    options:
+      a: "As planning targets — the studies are large-n industry research"
+      b: "As motivation, not targets — they are not replicated under controlled conditions; the rigorous controlled measurement (METR, July 2025) found experienced developers 19 percent SLOWER with AI on complex repos while believing they were 20 percent faster"
+      c: "As targets, but discounted by half to account for self-report bias"
+      d: "As aspirational estimates for juniors only — the studies excluded senior engineers"
+    correct: "b"
+    explanation: |
+      The page carries the METR study (arXiv 2507.09089, July 2025) as the only
+      rigorous control-group measurement for this context: minus 19 percent for
+      experienced developers on complex open-source repos, with a perception
+      gap of 39 points — developers believed they were 20 percent faster.
+      Self-reported figures from consulting and vendor studies are not
+      replicated under controlled conditions and are treated as motivation, not
+      planning inputs (guide/ops/team-metrics.md, Group 1; the same discipline
+      appears in adoption-approaches for the J-curve discussion). Option d
+      inverts the finding's direction — the measured slowdown was for
+      experienced developers — and options a and c accept the unreplicated
+      numbers the page explicitly distrusts.
+    doc_reference:
+      file: "guide/ops/team-metrics.md"
+      section: "Group 1: RCT-verifiable metrics"
+      anchor: "#group-1-rct-verifiable-metrics"
+
+  - id: "ta-009"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A new user follows the turnkey quickstart: minimal AGENTS.md, vibe --setup, then opens Vibe in the repo. How does the quickstart tell them to verify the setup worked?"
+    options:
+      a: "Run 'vibe --check-upgrade' — it validates the project configuration"
+      b: "Ask the agent 'What is this project's test command?' — a pass means the answer quotes the AGENTS.md; a fail means the folder was not trusted, because project instructions load only from trusted roots"
+      c: "Check that .vibe/config.toml was auto-generated with the project's stack"
+      d: "Run the test suite — if tests pass, the setup is verified"
+    correct: "b"
+    explanation: |
+      The quickstart's verification step is the test-command question: the
+      agent has the AGENTS.md in context only if the folder was trusted — a
+      wrong answer means the trust prompt was declined and project instructions
+      were skipped (guide/roles/adoption-approaches.md, Turnkey quickstart;
+      PART-AGENTSMD; PART-TRUST section 3.5). Vibe does not auto-generate
+      project config (option c) — the quickstart's philosophy is a hand-written
+      minimal AGENTS.md plus friction-driven additions. Option d tests the
+      project, not the setup; and the guide's sanity-check table names
+      --check-upgrade for update problems, not config validation.
+    doc_reference:
+      file: "guide/roles/adoption-approaches.md"
+      section: "Turnkey quickstart"
+      anchor: "#turnkey-quickstart"
+
+  - id: "ta-010"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "Six months into a rollout, your team's productivity has dipped below the pre-adoption baseline while they build specs, harness infrastructure, and review discipline. What does the adoption page say this pattern is?"
+    options:
+      a: "A failure signal — the tooling is not paying off and the team should roll back to assisted editing"
+      b: "Tool misuse — the dip means the team configured Vibe wrong and should copy a proven config from a leading team"
+      c: "The expected J-curve at the L2-to-L3 transition: the investment in specs, context management, and harness infrastructure lands before the productivity gains, a structural feature of general-purpose technology adoption documented across tens of thousands of plants — not a sign something went wrong"
+      d: "A measurement artifact — productivity cannot dip, so the metrics pipeline must be broken"
+    correct: "c"
+    explanation: |
+      Moving from L2 (agent-in-the-loop) to L3 (orchestrated agents) requires
+      investing in specs, context management, harness infrastructure, and team
+      discipline BEFORE gains materialize. The page anchors this in McElheran,
+      Yang, Kroff, and Brynjolfsson (2025): early AI adopters in US
+      manufacturing showed an average minus 1.33 point total factor
+      productivity drop before gains emerged — the J-curve is a structural
+      feature of general-purpose technology adoption
+      (guide/roles/adoption-approaches.md, the J-curve section). The page adds
+      the honest corollary: teams that skip the investment and stay at L2
+      rarely see the large vendor-claimed gains materialize. Option b is the
+      documented pitfall in reverse — copying a large config is an
+      anti-pattern, and the page's starting points are hypotheses to adapt.
+    doc_reference:
+      file: "guide/roles/adoption-approaches.md"
+      section: "The J-curve you will hit at L2 to L3"
+      anchor: "#the-j-curve-you-will-hit-at-l2-to-l3"
+
+  - id: "ta-011"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "Per the L0-L5 scale, where does the guide say most professional use sits, and what does that level look like?"
+    options:
+      a: "L1 — chat-driven development: the developer queries an AI and pastes results, with no agentic loop"
+      b: "L2 — agent-in-the-loop: the agent reads the codebase and executes multi-step tasks while the developer reviews each significant step; the Vibe CLI in basic use"
+      c: "L3 — orchestrated agents running in parallel with spec-driven workflows, which most teams reach within a quarter"
+      d: "L0 — spicy autocomplete, because most developers still only accept completions"
+    correct: "b"
+    explanation: |
+      L2, agent-in-the-loop, is where the scale says most professional use
+      sits: the agent reads the codebase and executes multi-step tasks, and the
+      developer reviews each significant step (guide/roles/adoption-approaches.md,
+      the L0-L5 scale). L3 requires significant setup investment — weeks to
+      months of specs, context engineering, and harness building (option c
+      overstates the pace). The page also cites mid-2026 surveys as industry
+      evidence, not Vibe measurements: only about 31 percent of developers use
+      agents at all and L3 and above is under 10 percent. L0 and L1 describe
+      completion and paste-driven chat (options a and d) — below the agentic
+      loop.
+    doc_reference:
+      file: "guide/roles/adoption-approaches.md"
+      section: "The L0-L5 scale: where is your team?"
+      anchor: "#the-l0-l5-scale-where-is-your-team"
+
+  - id: "ta-012"
+    difficulty: "senior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A junior developer on your team accepts every agent diff unread, debugs by asking for random changes until something works, and cannot explain the last feature 'their' code shipped. What does learning-with-ai name this pattern and prescribe?"
+    options:
+      a: "The avoidant pattern — the prescription is the embracing-AI-tools program, starting with low-stakes introduction"
+      b: "Prompt-and-pray coding — the prescription is the UVAL protocol (Understand, Verify, Apply, Learn), which forces understanding before acceptance, plus the 70/30 split: struggle-heavy when learning new concepts, AI-heavy when applying known ones"
+      c: "The dependent pattern — the prescription is cold-turkey removal of the AI tool for four weeks"
+      d: "AI fatigue — the prescription is 30-minute time boxes and /clear for context resets"
+    correct: "b"
+    explanation: |
+      Accept-all without reading diffs and debug-by-random-change are the
+      listed symptoms of prompt-and-pray coding (the page's preferred phrasing
+      for the practice that circulates externally under another name), and at
+      team scale it accumulates into comprehension debt. The antidote is UVAL —
+      the 15-minute understand-first rule, explain-it-back verification,
+      transform-don't-copy application, and insight capture — with the 70/30
+      weekly split (guide/roles/learning-with-ai.md, the prompt-and-pray trap
+      and the UVAL protocol). Option a misclassifies: avoidant describes someone
+      who refuses AI. Option c is a real part of the dependency-breaking
+      program (week 1 is cold turkey) but the sustained counter is UVAL plus a
+      balanced split, not removal. Option d is a real mitigation for
+      nondeterminism stress, not this failure mode.
+    doc_reference:
+      file: "guide/roles/learning-with-ai.md"
+      section: "The Prompt-and-Pray Trap"
+      anchor: "#the-prompt-and-pray-trap"
+
+  - id: "ta-013"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "Your platform team must run a Vibe agent on a nightly schedule with a hard spend cap and machine-readable results, with no human attached. Which verified combination does the automation page prescribe, and why not /loop?"
+    options:
+      a: "cron shelling out to 'vibe --trust -p <prompt> --output json --max-turns N --max-price D' — /loop lives inside one session, fires only when idle, and has no per-loop budget, because the budget flags are -p-only"
+      b: "/loop 1d with the nightly prompt — it survives resume and fires on schedule without a human"
+      c: "A --worktree run under --auto-approve with /loop cancel as the kill switch"
+      d: "The OTel export — schedule runs through enable_otel with an endpoint that triggers the job"
+    correct: "a"
+    explanation: |
+      No scheduler ships in the CLI: a -p run exits after responding, and /loop
+      is a fixed-interval prompt inside one live session — idle-only firing,
+      minimum 30 seconds, at most 50 loops per session, and no verified price or
+      turn cap for looped turns because the budget flags apply only in -p mode.
+      The rule of thumb: /loop for 'keep checking while I work in this
+      session'; cron plus -p for everything that must run unattended, bounded by
+      --max-turns and --max-price, read through --output json
+      (guide/ops/automation.md; PART-CLI; PART-SESSIONS section 5). Option b
+      needs a live session kept open and has no budget. Option d invents a
+      scheduler in the telemetry path.
+    doc_reference:
+      file: "guide/ops/automation.md"
+      section: "1. The two surfaces"
+      anchor: "#1-the-two-surfaces"
+
+  - id: "ta-014"
+    difficulty: "power"
+    profiles: ["power", "pm"]
+    question: "A 300-engineer organization runs a provider pilot and one candidate produces zero accepted tasks after heavy spend. A procurement lead suggests reporting the trial as 'cost per accepted task pending' to keep the option alive. What does the adoption page say to do instead?"
+    options:
+      a: "Report zero accepted tasks and total spend — do not hide a failed trial behind an undefined cost-per-accepted-task ratio"
+      b: "Extend the pilot until at least one task is accepted so the ratio is defined"
+      c: "Average the failed candidate's spend into the portfolio-wide cost per accepted task"
+      d: "Report the trial under the vendor's published average productivity figures instead"
+    correct: "a"
+    explanation: |
+      The portfolio exercise is explicit: do not hide a failed trial behind an
+      undefined cost-per-accepted-task ratio — report zero accepted tasks and
+      total spend (guide/roles/adoption-approaches.md, Choosing what you pay
+      for, step 4). The same honesty applies to pilots generally: headless runs
+      are bounded by --max-price and approval-required calls are denied, never
+      silently approved, so 'a pilot measures the policy you actually ship, not
+      a permissive fantasy'. Options b and c massage the number; option d swaps
+      measured data for the unreplicated vendor figures the page treats as
+      motivation, not planning inputs.
+    doc_reference:
+      file: "guide/roles/adoption-approaches.md"
+      section: "Choosing what you pay for"
+      anchor: "#choosing-what-you-pay-for"

@@ -1,0 +1,92 @@
+# hooks.toml.example — sample Vibe hook configuration.
+#
+# Install as <project>/.vibe/hooks.toml (loaded only when the project root is
+# trusted; the user-level fallback is ~/.vibe/hooks.toml). Project entries
+# load first; a duplicate hook name across files loses to the project entry.
+#
+# Only three event types exist: pre_tool, post_tool, post_agent.
+# Per-hook keys: name (required, unique), type (required), command (required,
+# non-blank), match (tool hooks only; default "*"), timeout (seconds,
+# default 60), strict (tool hooks only; default false), description (free
+# text). Unknown keys are tolerated and ignored.
+#
+# strict and the fail-open default: any hook failure (non-zero exit, timeout,
+# unparseable stdout) is a WARNING and the gated action proceeds. strict =
+# true escalates a failure to a denial (pre_tool) or to clearing the tool
+# output (post_tool). Rule of thumb: guards that exist to block dangerous
+# actions set strict = true (a crashed guard must not fail open); advisory
+# nudges and loggers stay fail-open.
+
+# --- pre_tool: runs before the permission prompt; first deny short-circuits
+# the remaining pre_tool hooks for that call. Denies skip the tool call
+# entirely. An allow with hook_specific_output.tool_input replaces the
+# model's arguments (re-validated immediately).
+
+[[hooks]]
+name = "deny-dangerous-bash"
+type = "pre_tool"
+match = "bash"                       # bare builtin tool name
+command = "bash .vibe/hooks/guard-bash-dangerous.sh"
+strict = true
+description = "Reject destructive shell commands: rm -rf on roots, mkfs, force pushes, credential files."
+
+[[hooks]]
+name = "deny-secrets-in-command"
+type = "pre_tool"
+match = "bash"
+command = "bash .vibe/hooks/guard-secrets-in-command.sh"
+strict = true
+description = "Reject shell commands carrying hardcoded secrets."
+
+[[hooks]]
+name = "guard-protected-paths"
+type = "pre_tool"
+match = "re:^(read_file|write_file|edit)$"   # full-match regex form
+command = "bash .vibe/hooks/guard-protected-paths.sh"
+strict = true
+description = "Deny file tools touching env files, keys and credentials."
+
+[[hooks]]
+name = "guard-prompt-injection"
+type = "pre_tool"
+# match omitted = "*" = every tool, including MCP ({alias}_{tool}),
+# connector (connector_{alias}_{tool}) and subagent spawns ("task").
+command = "bash .vibe/hooks/guard-prompt-injection.sh"
+strict = true
+timeout = 30
+description = "Deny tool calls whose text carries prompt-injection patterns."
+
+# --- post_tool: runs iff the tool body ran (success/failure/cancelled) —
+# never on a pre_tool denial or a user denial. Deny replaces the tool output
+# text with the reason; allow + additional_context appends to it.
+
+[[hooks]]
+name = "scrub-output-secrets"
+type = "post_tool"
+command = "bash .vibe/hooks/guard-output-secrets.sh"
+strict = true                        # a crashed guard must not leak the output it was scanning
+description = "Replace tool outputs that contain leaked secrets."
+
+[[hooks]]
+name = "hint-run-checks"
+type = "post_tool"
+match = "re:^(write_file|edit)$"
+command = "bash .vibe/hooks/hint-run-checks.sh"
+description = "Append a reminder to run the sibling test file after code edits. Advisory: fail-open."
+
+[[hooks]]
+name = "log-tool-calls"
+type = "post_tool"
+command = "bash .vibe/hooks/log-tool-calls.sh"
+description = "Append every tool call to ~/.vibe/logs/tool-activity/. Audit only: fail-open."
+
+# --- post_agent: runs once per turn after the agent finishes with no pending
+# tool calls. match and strict are FORBIDDEN here (validation error). A deny
+# injects the reason as a user message and the model retries — max 3 retries
+# per user turn.
+
+[[hooks]]
+name = "gate-verification"
+type = "post_agent"
+command = "bash .vibe/hooks/gate-verification.sh"
+description = "Run lint + tests after each turn; deny the turn (retry) when they fail."

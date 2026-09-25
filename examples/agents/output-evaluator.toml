@@ -1,0 +1,16 @@
+# Pair with prompts/output-evaluator.md, selected via system_prompt_id below.
+# active_model = "local" is the builtin devstral alias on the llamacpp provider;
+# it needs a local server. Delete the line to fall back to the default model.
+agent_type = "subagent"
+display_name = "Output Evaluator"
+description = "LLM-as-a-judge quality gate: scores proposed changes for correctness, completeness, and safety (0-10 each) and returns an APPROVE / NEEDS_REVIEW / REJECT verdict with a specific issue list."
+safety = "safe"
+system_prompt_id = "output-evaluator"
+active_model = "local"
+enabled_tools = ["read_file", "grep", "bash"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

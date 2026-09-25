@@ -1,0 +1,303 @@
+category: "Context and Sessions"
+category_id: 2
+
+questions:
+  - id: "cs-001"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You type: /compact keep the validator API decisions, drop the test-run transcripts. What does the extra text do, and what happens to the session?"
+    options:
+      a: "The text replaces the default compaction prompt entirely; the session restarts clean"
+      b: "The text is appended to the configured compaction prompt under Additional Instructions; the same session and visible conversation continue, and the context token counter resets"
+      c: "The text is sent as a new user message to the model, which decides what to summarize"
+      d: "The text is ignored — /compact takes no arguments"
+    correct: "b"
+    explanation: |
+      /compact optionally takes instructions, appended to the configured
+      compaction_prompt under a Additional Instructions heading; on success a
+      user-role envelope message marked as a compaction boundary is appended,
+      context_tokens resets to 0, and the same session and visible
+      conversation continue (PART-SESSIONS section 4.2; PART-COMMANDS
+      section 2). Compaction is lossy by design, which is why the instructions
+      exist — they steer what survives. The session never restarts on /compact;
+      starting fresh is /clear, a different command with a different effect.
+    doc_reference:
+      file: "guide/learning-path/02-core-loop.md"
+      section: "The /compact manual valve"
+      anchor: "#compact--the-manual-valve"
+
+  - id: "cs-002"
+    difficulty: "junior"
+    profiles: ["junior", "pm"]
+    question: "Context is drifting and you want a clean slate, including the model the session pinned at its first user message. Which command, and why?"
+    options:
+      a: "/compact — it summarizes and unpinns the model"
+      b: "/clear — it starts a new, unpinned conversation that follows current config"
+      c: "/rewind — rolling back to the first message unpins the model"
+      d: "/resume — picking the session again resets its pin"
+    correct: "b"
+    explanation: |
+      /clear (alias /new) starts a new conversation that follows current
+      config and resets the model pin (PART-SESSIONS section 3.5;
+      PART-COMMANDS section 2). /compact is the tempting confusion: it frees
+      context but keeps the same session — same pin, same visible
+      conversation. /rewind moves the conversation pointer back but does not
+      touch the pin, and /resume restores a saved session with its pinned
+      model intact, which is the opposite of what you want.
+    doc_reference:
+      file: "guide/learning-path/02-core-loop.md"
+      section: "Sessions: Rewind, Resume, and Clear"
+      anchor: "#sessions-rewind-resume-and-clear"
+
+  - id: "cs-003"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "Your config sets the global auto_compact_threshold = 200000, but one [[models]] entry sets auto_compact_threshold = 800000 on itself. When does that model's session compact?"
+    options:
+      a: "At 200,000 — the global value always wins"
+      b: "At 800,000 — the per-model override wins; the global value only fills models that did not set their own"
+      c: "At 500,000 — global and per-model values are averaged"
+      d: "Never — a per-model value disables auto-compaction"
+    correct: "b"
+    explanation: |
+      ModelConfig.auto_compact_threshold carries the per-model value, and a
+      validator copies the global key only into models that did not explicitly
+      set their own, so per-model values survive (PART-SESSIONS section 4.1;
+      PART-CONFIG section 1.1). Live-verified meta.json files showed
+      user-added models at 800000 and 256000 alongside the default 200000 —
+      per-model values are common in practice. Only 0 disables
+      auto-compaction, not the presence of a per-model value.
+    doc_reference:
+      file: "guide/learning-path/02-core-loop.md"
+      section: "Context and Compaction"
+      anchor: "#context-and-compaction"
+
+  - id: "cs-004"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "A team wants long research sessions to never auto-compact — they would rather run /compact by hand. What is the verified way to disable auto-compaction?"
+    options:
+      a: "Set auto_compact_threshold = 0 in config.toml"
+      b: "Set auto_compact_threshold = -1 in config.toml"
+      c: "Set raise_on_compaction_failure = true so compaction never runs"
+      d: "There is no way to disable it; the best you can do is set a very high threshold"
+    correct: "a"
+    explanation: |
+      The trigger condition is threshold > 0 and context_tokens >= threshold,
+      checked before every turn — so 0 disables auto-compaction entirely
+      (PART-SESSIONS section 4.1). A negative value is not a documented
+      disable, and raise_on_compaction_failure is a different switch: it makes
+      a failed summarization raise instead of falling back to a dedicated
+      no-tools call (PART-SESSIONS section 4.3). Manual /compact remains
+      available either way.
+    doc_reference:
+      file: "guide/core/context-engineering.md"
+      section: "Compaction is a trigger, not a window"
+      anchor: "#compaction-is-a-trigger-not-a-window"
+
+  - id: "cs-005"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "While the agent is mid-turn, you type /status, and a moment later /compact. What happens to each?"
+    options:
+      a: "Both run immediately — every slash command is a side channel"
+      b: "Both are rejected until the session is idle"
+      c: "/status runs immediately (a side-channel command); /compact is rejected while the agent is busy and must be retried when idle"
+      d: "/status queues behind the turn; /compact runs immediately because compaction is urgent"
+    correct: "c"
+    explanation: |
+      Only side_channel commands run while the agent is busy; /status is one of
+      them. /compact mutates session state, so it is rejected while busy and
+      can be retried when idle (PART-COMMANDS section 2). The rejected commands
+      do not queue — what queues is plain prompts, /skill prompts, and prompts
+      with @ mentions. Knowing which side of the line a command sits on
+      explains the otherwise confusing "nothing happened" moments mid-turn.
+    doc_reference:
+      file: "guide/cheatsheet.md"
+      section: "Essential Slash Commands"
+      anchor: "#essential-slash-commands"
+
+  - id: "cs-006"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "Coming from other tools, a new user looks for /plan and /mode commands to switch Vibe into a planning mode. What is the verified answer?"
+    options:
+      a: "/plan exists but is hidden until an agent TOML defines it"
+      b: "Neither exists — what other tools call modes maps to agent selection (Shift+Tab, --agent) plus the /thinking level"
+      c: "/mode exists and cycles thinking levels"
+      d: "Modes were removed in 2.25.0; use /compact instead"
+    correct: "b"
+    explanation: |
+      The complete 2.25.0 command list (PART-COMMANDS section 2) has no /plan
+      or /mode. The verified equivalents are agent selection — the plan agent
+      is Vibe's plan mode, selected with --agent plan or Shift+Tab cycling —
+      and the /thinking command for the per-model thinking level
+      (guide/learning-path/02-core-loop.md, "Modes Are Agents and One Model
+      Setting"). This is a naming difference, not a capability gap: planning
+      exists as the plan agent profile.
+    doc_reference:
+      file: "guide/learning-path/02-core-loop.md"
+      section: "Modes Are Agents (and One Model Setting)"
+      anchor: "#modes-are-agents-and-one-model-setting"
+
+  - id: "cs-007"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You mention the same file with @ in three consecutive prompts. What does this cost?"
+    options:
+      a: "One read — mentions are cached after the first reference in a session"
+      b: "Three reads — each mention injects a fresh read of the file; there is no caching or dedup"
+      c: "Three reads, but each is capped at 500 lines so the cost is bounded"
+      d: "Nothing after the first turn — the file stays pinned in context"
+    correct: "b"
+    explanation: |
+      An @path mention injects a synthetic read_file call after your message,
+      so the content arrives as a fresh tool result every time it is mentioned
+      — re-mentioning re-reads (PART-SESSIONS section 6.1). Mentioning the
+      same file three times costs its tokens three times, which is why
+      mentions are described as a running cost. The real caps are 2,000 lines
+      and 50 KB per file and 8 file mentions per prompt, not 500 lines, and
+      there is no pinning mechanism.
+    doc_reference:
+      file: "guide/core/context-engineering.md"
+      section: "Mentions are a running cost"
+      anchor: "#-mentions-are-a-running-cost"
+
+  - id: "cs-008"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "vibe -c from a directory picks which session, exactly?"
+    options:
+      a: "The most recently updated session anywhere on the machine"
+      b: "The per-terminal last-session pointer if it resolves to a session reaching the current directory; otherwise the most recent session reaching the current directory; an error if none does"
+      c: "The session with the closest match to the current git branch"
+      d: "The oldest unfinished session in the current directory"
+    correct: "b"
+    explanation: |
+      -c is folder-scoped with a two-step lookup: the per-TTY .last_session
+      pointer first, else the most recent session reaching the cwd, else an
+      error (PART-SESSIONS section 3.2). A session reaches a directory if
+      either its origin_directory or environment.working_directory matches, so
+      a moved session is offered from both where it began and where it sits.
+      The global, directory-agnostic lookup is --resume <SESSION_ID> — the
+      key difference from -c, and the reason -c never surprises you with a
+      session from another project.
+    doc_reference:
+      file: "guide/core/memory-systems.md"
+      section: "The session store"
+      anchor: "#22-the-session-store"
+
+  - id: "cs-009"
+    difficulty: "senior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You changed the default model in config.toml yesterday. Today you resume last week's session. Which model does the session use?"
+    options:
+      a: "The new default — config is re-read on resume"
+      b: "The model pinned at the session's first user message; a pinned model survives config changes unless it is no longer configured at all"
+      c: "The model pinned at session creation, and it errors out if the default changed"
+      d: "Whichever model the /thinking level maps to"
+    correct: "b"
+    explanation: |
+      The first user message pins the resolved active_model alias into the
+      session's config snapshot, and resuming keeps the pinned model even if
+      the configured default changed; if the pinned model is no longer
+      configured, Vibe falls back to the current default (PART-SESSIONS
+      section 3.5). /model updates the pin; /clear starts an unpinned
+      conversation that follows current config. The pin is why resumed
+      sessions behave consistently — and why a model change you made last
+      week may not show up in an old session.
+    doc_reference:
+      file: "guide/learning-path/02-core-loop.md"
+      section: "Sessions: Rewind, Resume, and Clear"
+      anchor: "#sessions-rewind-resume-and-clear"
+
+  - id: "cs-010"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A teammate disabled session logging for performance. Their vibe -c and --resume now fail. Why, and what is the exact requirement?"
+    options:
+      a: "Resume rebuilds the index from scratch and times out — retry with a smaller session list"
+      b: "Session logging must be enabled ([session_logging] enabled) for --continue and --resume; without it the store has nothing to resume from and the run raises an error"
+      c: "Resume requires generate_titles = true as well"
+      d: "Nothing is wrong — resume works with logging disabled, the failure must be elsewhere"
+    correct: "b"
+    explanation: |
+      -c and --resume raise "Session logging is disabled. Enable it in config
+      to use --continue or --resume" when session_logging.enabled is false
+      (PART-SESSIONS section 3.3). The config field is [session_logging]
+      enabled — a key some docs call log_interactions does not exist in the
+      2.25.0 schema. Titles are a separate switch that only affects naming,
+      not resumability.
+    doc_reference:
+      file: "guide/core/memory-systems.md"
+      section: "The session store"
+      anchor: "#22-the-session-store"
+
+  - id: "cs-011"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "You schedule: /loop 10s run the flaky-test checker. Then: /loop list. Which constraint did the first command hit?"
+    options:
+      a: "None — 10 seconds is a valid interval"
+      b: "The minimum interval is 30 seconds; 10s is rejected as an invalid interval"
+      c: "The prompt may not mention test names"
+      d: "Loops require the session to be idle at creation time and this one was not"
+    correct: "b"
+    explanation: |
+      /loop intervals take a number plus unit s/m/h/d with a 30-second
+      minimum enforced after conversion; 10s is invalid (PART-SESSIONS
+      section 5). Two neighbors worth knowing: the prompt cannot start with a
+      slash, and a session caps at 50 loops. Loops persist in meta.json and
+      are restored on resume — so a typo'd loop scheduled today resurfaces
+      tomorrow, which is why /loop list and /loop cancel exist.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Session persistence"
+      anchor: "#7-session-persistence"
+
+  - id: "cs-012"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A session was auto-titled by the background generator. The user then renames it with /rename. What happens to the title over the next 50 turns, including after a compaction?"
+    options:
+      a: "Auto-generation overwrites the manual title after the next periodic refresh"
+      b: "The manual title wins permanently — auto-generation never overwrites it, even the forced post-compaction regeneration"
+      c: "The manual title wins until the next resume, after which auto titles return"
+      d: "Compaction resets all titles to the first-message preview"
+    correct: "b"
+    explanation: |
+      /rename writes a manual title (title_source manual) that auto-generation
+      never overwrites — the lock discipline guarantees manual wins races
+      (PART-SESSIONS section 3.4). Auto titles refresh on a cadence (first
+      after the opening turn, then every 6 steps) and compaction forces one
+      extra regeneration because a compacted conversation reads differently
+      (PART-SESSIONS section 4.4), but all of those respect the manual lock.
+      The temptation to pick (a) comes from assuming the periodic refresher is
+      authoritative; it is not.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Resume semantics"
+      anchor: "#resume-semantics"
+
+  - id: "cs-013"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "During /compact, the summarizer model answers with a tool call instead of a summary, and the transcript then exceeds the context. What does Vibe do with raise_on_compaction_failure at its default?"
+    options:
+      a: "The compaction fails and the session errors out — the default is strict"
+      b: "A dedicated fallback call runs (fresh summarizer prompt, thinking off, no tools); a too-long context drops the oldest conversation round and retries, up to 3 times"
+      c: "The compaction is skipped silently and the session continues without a summary"
+      d: "The summary is truncated to the first 2,000 lines and used as-is"
+    correct: "b"
+    explanation: |
+      With raise_on_compaction_failure = false (the default), a tool_call or
+      empty_summary failure triggers a dedicated fallback summarization call —
+      fresh compaction system prompt, thinking off, no tools — and
+      ContextTooLongError drops the oldest conversation round and retries up to
+      3 times (PART-SESSIONS section 4.2). Setting the key true makes a
+      failure raise instead of falling back (PART-SESSIONS section 4.3). There
+      is no verified silent-skip or line-truncation path for compaction.
+    doc_reference:
+      file: "guide/core/context-engineering.md"
+      section: "Compaction is a trigger, not a window"
+      anchor: "#compaction-is-a-trigger-not-a-window"

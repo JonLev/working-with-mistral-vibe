@@ -1,0 +1,66 @@
+# Pre-commit hooks — local entry point for the same gate scripts CI runs.
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+#
+# Every hook below calls the same scripts that .github/workflows/ci.yml
+# calls — one implementation (scripts/), two entry points.
+
+default_language_version:
+  python: python3
+
+repos:
+  - repo: local
+    hooks:
+      - id: gate-links
+        name: "gate: relative links resolve"
+        entry: scripts/gates/check-links.sh
+        language: system
+        pass_filenames: false
+
+      - id: gate-claude-terms
+        name: "gate: naming policy (claude-term)"
+        entry: scripts/gates/check-claude-terms.sh
+        language: system
+        pass_filenames: false
+
+      - id: gate-frontmatter
+        name: "gate: guide frontmatter + verified banner"
+        entry: scripts/gates/check-frontmatter.sh
+        language: system
+        pass_filenames: false
+
+      - id: gate-markdown
+        name: "gate: markdownlint-cli2"
+        entry: scripts/gates/check-markdown.sh
+        language: system
+        pass_filenames: false
+
+      - id: generate-llms-check
+        name: "drift: llms.txt / llms-full.txt regenerated"
+        entry: python3 scripts/generate-llms.py --check
+        language: system
+        pass_filenames: false
+
+      - id: generate-reference-check
+        name: "drift: machine-readable/reference.yaml regenerated"
+        entry: python3 scripts/generate-reference.py --check
+        language: system
+        pass_filenames: false
+
+      - id: generate-monolith-check
+        name: "drift: guide/vibe-guide.md regenerated"
+        entry: python3 scripts/generate-monolith.py --check
+        language: system
+        pass_filenames: false
+
+      - id: quiz-validate
+        name: "quiz: question files match schema"
+        entry: python3 scripts/validate-quiz.py
+        language: system
+        pass_filenames: false
+
+      - id: version-sync
+        name: "VERSION consistency across artifacts"
+        entry: scripts/sync-version.sh --check
+        language: system
+        pass_filenames: false

@@ -1,0 +1,12 @@
+# OS noise
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Local scratch
+*.local

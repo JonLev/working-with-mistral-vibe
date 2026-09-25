@@ -1,0 +1,14 @@
+# Stage 4 of the cyber-defense pipeline. Pair with prompts/threat-reporter.md,
+# selected via system_prompt_id below. Spawned by the parent session with the
+# task tool. This is the team's only writer: it keeps write_file, allowlisted
+# to the report path, and writes cyber-defense-report.md.
+agent_type = "subagent"
+display_name = "Threat Reporter"
+description = "Write the human-readable security incident report. Final stage of the cyber-defense pipeline: reads the events, anomalies and risk JSON files and writes cyber-defense-report.md — an executive summary, per-anomaly details, and concrete recommended actions."
+safety = "neutral"
+system_prompt_id = "threat-reporter"
+enabled_tools = ["read_file", "grep", "write_file"]
+
+[tools.write_file]
+permission = "ask"
+allowlist = ["cyber-defense-report.md", "*/cyber-defense-report.md"]

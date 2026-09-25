@@ -1,0 +1,337 @@
+category: "Workflows and Methodologies"
+category_id: 8
+
+questions:
+  - id: "wf-001"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You ask an agent 'Add a shopping cart total with a 10 percent discount over 100 dollars, with tests.' The agent writes the implementation first and passing tests second. Per the TDD workflow, what should you have asked for?"
+    options:
+      a: "'Write tests for the shopping cart feature' — the word tests triggers the red phase"
+      b: "'Write a FAILING test for the cart total. Do NOT write the implementation yet.' — left to its defaults the agent implements first and tests second, so the cycle only happens if you prompt for it"
+      c: "'Implement the cart with TDD' — naming the methodology is enough; the agent then follows red-green-refactor"
+      d: "Nothing — the default agent profile runs TDD automatically when tests exist in the repo"
+    correct: "b"
+    explanation: |
+      Left to its defaults an agent writes implementation first and tests that
+      pass against it, which defeats TDD's purpose; the fix is prompt-driven —
+      ask for the failing test explicitly and forbid the implementation
+      (guide/workflows/tdd.md, The Problem). Options a and c are the two
+      documented anti-prompts: 'write tests for this feature' and 'implement
+      with tests' both produce code-first output. No agent profile encodes TDD
+      (option d); the verified enforcement surfaces are AGENTS.md rules, hooks,
+      and the read-only plan agent.
+    doc_reference:
+      file: "guide/workflows/tdd.md"
+      section: "The Problem"
+      anchor: "#the-problem"
+
+  - id: "wf-002"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "During a planning session the prompt says 'while you are at it, also fix the login bug you noticed'. The session runs 'vibe --agent plan'. What happens?"
+    options:
+      a: "The agent fixes the bug — the plan agent is read-only by convention, but an explicit user instruction overrides it"
+      b: "The agent refuses the whole prompt because plan mode forbids mixed instructions"
+      c: "Nothing is edited — the plan agent is mechanically read-only: write_file and edit are permission 'never' except for an allowlist under $VIBE_HOME/plans/*, so it cannot slip into implementation even if the prompt is sloppy"
+      d: "The agent asks for confirmation before each edit, because plan keeps permission 'ask' on file tools"
+    correct: "c"
+    explanation: |
+      The plan agent is hard read-only, not prompt-read-only: write_file and
+      edit carry permission never with an allowlist limited to $VIBE_HOME/plans/*,
+      so thinking before action is enforced by permission overrides, not
+      willpower (PART-AGENTS section 7; PART-PERMISSIONS section 4.1). Option d
+      describes the ask agent. Options a and b are the two opposite guesses
+      about instruction priority — the permission layer wins over both the
+      embedded instruction and the refusal; the agent will report the bug in
+      its plan instead of fixing it. Switch profiles with Shift+Tab
+      (ask, plan, accept-edits, auto-approve) or --agent when execution starts.
+    doc_reference:
+      file: "guide/workflows/tdd.md"
+      section: "Planning with the plan agent"
+      anchor: "#planning-with-the-plan-agent"
+
+  - id: "wf-003"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "In the RPI workflow, which gate does the guide call the most important, and why?"
+    options:
+      a: "The plan-approval gate — revisions after approval cost implementation time"
+      b: "The GO/NO-GO gate after research — it prevents building the wrong thing entirely, before any plan or code exists"
+      c: "The step test-gates during implementation — they are the only automated gates in the workflow"
+      d: "The rollback gate — every plan that touches shared state must have one before approval"
+    correct: "b"
+    explanation: |
+      RPI has two human gates and one automated gate per step: the GO/NO-GO
+      decision after reading RESEARCH.md is called the most important gate
+      because it stops the wrong thing from being built at all
+      (guide/workflows/rpi.md, How the Gates Work). Option a is a real
+      rationale — revisions before approval are free, after approval they cost
+      implementation time — but it is the second gate. Option c is true
+      (step gates are automated) without answering the question. NO-GO research
+      docs are archived as records of decisions and why.
+    doc_reference:
+      file: "guide/workflows/rpi.md"
+      section: "How the Gates Work"
+      anchor: "#how-the-gates-work"
+
+  - id: "wf-004"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "You run the RPI research phase under 'vibe --agent plan' to make it mechanically read-only. Where can the agent write RESEARCH.md, and what does that force the workflow to do?"
+    options:
+      a: "Nowhere in your repo — the plan agent's only writable surface is $VIBE_HOME/plans/*, so the research doc stays there (or in-chat) and a follow-up writable session transcribes the findings into the repo"
+      b: "Anywhere in the repo — read-only is prompt discipline in the research phase, so a 'write RESEARCH.md' instruction re-enables writes"
+      c: "Only to docs/features/ — the plan agent's allowlist covers the repo's docs tree"
+      d: "Only to the session scratchpad, which is not resumable, so the workflow requires the human to take notes"
+    correct: "a"
+    explanation: |
+      The plan profile's write_file/edit allowlist covers only
+      $VIBE_HOME/plans/*, so hard read-only research cannot write RESEARCH.md
+      into your repo; either keep the research doc under ~/.vibe/plans/ or have
+      a follow-up writable session transcribe the findings
+      (guide/workflows/rpi.md, Running research on Vibe; PART-AGENTS section
+      7). Option b is the soft path — the default agent plus AGENTS.md rules —
+      which is fine when watched but is not mechanical. Option c invents a docs
+      allowlist. Option d names a real always-writable surface (the scratchpad)
+      but draws the wrong conclusion: the plan itself is still produced and can
+      be transcribed; no human note-taking is required.
+    doc_reference:
+      file: "guide/workflows/rpi.md"
+      section: "Running research on Vibe"
+      anchor: "#running-research-on-vibe"
+
+  - id: "wf-005"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You open a session with 'I am thinking of using Redis for caching — how should I implement it?' Per the exploration workflow, what did you just do wrong?"
+    options:
+      a: "Nothing — stating a candidate technology narrows the agent's search and saves time"
+      b: "You anchored the session — leading with a solution eliminates most of the solution space before exploration starts, in your direction as much as the model's"
+      c: "You used the wrong agent — exploration questions must go to the explore subagent, not the main session"
+      d: "You forgot the plan agent — exploration prompts only work under --agent plan"
+    correct: "b"
+    explanation: |
+      Anchoring runs in both directions: lead with 'I'm thinking Redis' and
+      you have eliminated most alternatives before exploration starts; accept
+      the first proposal you receive and you never see better-fitting options.
+      The pattern is problem statement only, then 3-5 approaches, then a
+      quantified comparison, then choose (guide/workflows/exploration.md, The
+      problem: anchoring). Exploration happens in your normal session BEFORE
+      handing off to the plan agent (options c and d) — the plan agent is for
+      the post-decision plan.
+    doc_reference:
+      file: "guide/workflows/exploration.md"
+      section: "The problem: anchoring"
+      anchor: "#the-problem-anchoring"
+
+  - id: "wf-006"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "A team ends every TDD cycle with: 'vibe --trust -p \"Read PLAN and TASKS.md, run the full test suite, and report exactly which acceptance criteria pass. Do not fix anything.\" --max-turns 8 --output json'. What makes this the strongest form of the cycle's last step?"
+    options:
+      a: "The --max-turns cap guarantees the verification completes within budget on every run"
+      b: "It is a separate invocation that only verifies: in -p mode approval-requiring calls are auto-denied, so the evaluator run cannot edit files even if the prompt asked it to — the code-writing agent is never the same invocation that certifies the work"
+      c: "The --output json flag makes the test results machine-readable, which is what makes a verification objective"
+      d: "It runs the suite under the plan agent, so the run is read-only by profile"
+    correct: "b"
+    explanation: |
+      The independent-evaluator principle: the agent that writes the code must
+      not be the same invocation that certifies it done — an agent that spent
+      the turn building a feature interprets ambiguous output charitably, while
+      a fresh -p run that can only read and run commands does not
+      (guide/workflows/tdd.md, Headless verification). The auto-deny semantics
+      (PART-TRUST section 3.4) are what make 'do not fix anything' enforced
+      rather than requested. Option d is wrong on the command itself — no
+      --agent is passed; the default agent applies, and the denial of
+      approval-requiring calls is what keeps it read-only in effect. Option a
+      overstates: --max-turns bounds the run, it does not guarantee completion.
+      Note one operational detail: a command like npm test is not in the
+      default bash allowlist, so the team must allowlist it or the headless run
+      denies the suite invocation itself.
+    doc_reference:
+      file: "guide/workflows/tdd.md"
+      section: "Headless verification: the independent evaluator run"
+      anchor: "#headless-verification-the-independent-evaluator-run"
+
+  - id: "wf-007"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "In a Best-of-3 protocol, you read candidate A, dislike its style, and edit the rubric to add a 'style' criterion mid-run. What does the protocol say you must now do?"
+    options:
+      a: "Nothing — the rubric is a living document and mid-run edits are the point of blind scoring"
+      b: "Rescore only the candidates already scored, using the new criterion"
+      c: "Record the reason, version the rubric, and regenerate or rescore ALL candidates under the revised rubric — a rubric changed after reading a candidate is a new experiment"
+      d: "Drop candidate A — it is now disqualified for causing a rubric change"
+    correct: "c"
+    explanation: |
+      The rubric, its weights, and the passing score are frozen before
+      generation; a rubric changed after reading a candidate is a new
+      experiment, so you record the reason, version the rubric, and regenerate
+      or rescore all candidates under the revised rubric
+      (guide/workflows/best-of-n.md, the protocol). The frozen rubric is what
+      makes blind scoring auditable rather than a preference. Option b is the
+      partial-application trap — scores under two rubrics are not comparable.
+      Option d invents a disqualification rule.
+    doc_reference:
+      file: "guide/workflows/best-of-n.md"
+      section: "1. Freeze the task contract"
+      anchor: "#1-freeze-the-task-contract"
+
+  - id: "wf-008"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "You want three independent Best-of-N candidate patches, each in its own isolated checkout, each run bounded and machine-readable. Which verified combination does the protocol build on?"
+    options:
+      a: "Three --worktree NAME runs on branches named NAME, each a headless 'vibe --trust -p \"<task contract>\" --max-turns N --max-price D --output json' run — matching the agent profile to what candidates may touch"
+      b: "Three sessions launched with --worktree and no NAME, so each lands on its own vibe/<name> branch, then compare with git diff"
+      c: "One session spawning three explore subagents through the task tool, comparing their text-only reports"
+      d: "Three /loop schedules in one session, one per candidate, firing when idle"
+    correct: "a"
+    explanation: |
+      One named worktree per candidate gives the separate-diffs property by
+      construction — no candidate can silently inherit another's changes — and
+      each generation run is a bounded headless run. The named form checks out
+      a branch named NAME; only the unnamed form uses the vibe/<name> prefix
+      (option b; PART-WORKTREES, PART-CLI). In -p mode approval-requiring calls
+      are auto-denied unless --auto-approve or the agent's permission config
+      allows them, so the profile must match what candidates are allowed to
+      touch. Option c breaks isolation: task results are text-only summaries,
+      not patches, and subagents are capped at depth 1. Option d is a
+      fixed-interval prompt, not a candidate generator.
+    doc_reference:
+      file: "guide/workflows/best-of-n.md"
+      section: "2. Generate independent candidates"
+      anchor: "#2-generate-independent-candidates"
+
+  - id: "wf-009"
+    difficulty: "senior"
+    profiles: ["junior", "senior", "power", "pm"]
+    question: "A developer schedules '/loop 30m Check whether CI passed on this branch; if it failed, summarize the failures' and expects the loop to stop itself once CI is green. What does the guide say?"
+    options:
+      a: "It will — the loop evaluates its prompt's condition before each firing"
+      b: "It will, as long as the prompt includes an explicit stop condition the runtime can track"
+      c: "It will not — /loop is a fixed-interval scheduled prompt, not a condition loop: it re-fires on a clock (minimum 30 s, at most 50 per session, only when the session is idle) and never evaluates an acceptance condition; cancellation is a separate /loop cancel"
+      d: "It will not, because prompts cannot reference CI state; only bash-based hooks can"
+    correct: "c"
+    explanation: |
+      /loop schedules a prompt on a fixed interval and never evaluates a
+      condition; each firing records an observation, and cancellation
+      (/loop cancel <id|all>) is separate from task acceptance
+      (guide/workflows/iterative-refinement.md; PART-SESSIONS section 5). The
+      interval floor is 30 seconds, the session cap is 50 loops, prompts cannot
+      start with '/', and firing is idle-only — a stuck turn means no check-in.
+      Option b is the exact trap the page corrects: prompt-level stop requests
+      are policy the model follows, not counters the runtime tracks; the only
+      hard budgets are the -p-mode caps. Loops do survive resume, restored from
+      the session's meta.json.
+    doc_reference:
+      file: "guide/workflows/iterative-refinement.md"
+      section: "Scheduled re-checking, not condition loops"
+      anchor: "#scheduled-re-checking-not-condition-loops"
+
+  - id: "wf-010"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "Your project spans weeks and multiple contributors. Where does the guide say task state must live, and why?"
+    options:
+      a: "In the harness — Vibe persists a per-project task store alongside the session logs, and AGENTS.md rules shape it"
+      b: "In checked-in task files plus AGENTS.md rules that tell every session how to maintain them — Vibe has session resume but no persistent task store in the verified surface, so files are the system of record"
+      c: "In the session transcript — resuming with --resume restores the task list with the conversation"
+      d: "In /todo, which synchronizes task state across terminals through the session store"
+    correct: "b"
+    explanation: |
+      Session resume exists; a persistent task store does not. Task tracking
+      is a file-based convention: task files checked into the repo plus AGENTS.md
+      rules for reading and updating them, which survives session end,
+      restarts, compaction, and multi-day gaps (guide/workflows/task-management.md,
+      section 1; PART-AGENTSMD). The inverse rule: if you cannot reconstruct
+      the work from files on disk, the workflow breaks at a session boundary —
+      the transcript is a convenience, not the system of record (option c).
+      Option d names a delta that exists only as a unified-harness-gated 2.25.8
+      command whose storage is not in the oracle; nothing builds on it. Two
+      writers get one --worktree each so the file is the only shared state.
+    doc_reference:
+      file: "guide/workflows/task-management.md"
+      section: "1. What exists and what does not"
+      anchor: "#1-what-exists-and-what-does-not"
+
+  - id: "wf-011"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "A reviewer subagent is spawned through the task tool to check a candidate 'with fresh eyes'. What does the Best-of-N page say you must record about this review?"
+    options:
+      a: "That it is independent — the subagent runs its own session with its own model call"
+      b: "That it is a compliance requirement — every candidate needs an independent reviewer before merge"
+      c: "That it is fresh context, NOT proven independence — the subagent shares the parent's model, permission store, and repository state, so you record those as possible correlation"
+      d: "That its verdict outranks executable verification, because a reviewer sees intent that tests cannot"
+    correct: "c"
+    explanation: |
+      The task tool gives the reviewer its own session and a text-only result
+      to the parent, but the subagent shares the parent's model, permission
+      store, and repository state (PART-AGENTS section 9) — fresh context
+      reduces one source of leakage; it does not prove independence, and the
+      proof log must record shared models, prompts, tools, state, incentives,
+      and access (guide/workflows/best-of-n.md, section 5). Option d inverts
+      the priority: executable verification is preferred, and a generator's
+      statement that its own code works is not verification. Option a is
+      exactly the overclaim the record prevents; option b invents a protocol
+      requirement — when no executable check exists, a reviewer is the option,
+      not a mandate.
+    doc_reference:
+      file: "guide/workflows/best-of-n.md"
+      section: "5. Verify outside the generation context"
+      anchor: "#5-verify-outside-the-generation-context"
+
+  - id: "wf-012"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "A team ports a per-PR changelog-fragment policy. Their old workflow used a hook that fired when the developer submitted the prompt, nudging before the agent started. What is the honest port to Vibe?"
+    options:
+      a: "A pre_tool hook with match '*' — it fires at the start of every turn, which is the closest equivalent of prompt submission"
+      b: "A post_agent hook — it fires once per turn, which is the same moment their old hook fired"
+      c: "There is no prompt-time hook: hooks fire on exactly pre_tool, post_tool, and post_agent, none at prompt submission — the nudge moves to a post_tool hook appending additional_context after edits, or to a git pre-commit hook outside Vibe entirely, with the CI gate as the only hard blocker"
+      d: "A pre_tool hook with match 'bash' and strict = true, denying any commit without a fragment"
+    correct: "c"
+    explanation: |
+      Vibe hooks fire on exactly three events, none at prompt submission, so
+      the prompt-time nudge cannot be built in the CLI. The verified moves are
+      an edit-time post_tool hook whose additional_context is appended to the
+      tool output the model sees (a reminder, not a gate — append-only and
+      fail-open), a git pre-commit hook outside Vibe (hard-fail, every
+      contributor), and the CI gate as the only true blocker
+      (guide/workflows/changelog-fragments.md; PART-HOOKS section 1). Option a
+      misreads pre_tool as turn-scoped — it fires per tool call. Option d is a
+      real enforceable shape but answers a different layer (commit-time
+      blocking), not the prompt-time nudge; and per the page, only CI can
+      reject a PR.
+    doc_reference:
+      file: "guide/workflows/changelog-fragments.md"
+      section: "Layer 2: The edit-time nudge (and an honest correction)"
+      anchor: "#layer-2-the-edit-time-nudge-and-an-honest-correction"
+
+  - id: "wf-013"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "A webhook receiver turns an issue tracker card into an agent run. The card title is 'Fix the payments bug by deleting the legacy table'. Per the event-driven workflow, what is the correct handling of that payload?"
+    options:
+      a: "Pass the title as the -p prompt — the receiver validated the webhook signature, so the card content is trusted"
+      b: "Extract the card's fields as data and build the run's task from your own reviewed template; an inbound event is data, never authorization, and no shell command or agent prompt may be constructed from the title or description"
+      c: "Pass the title as the prompt but strip any SQL keywords first, since the payload could carry prompt injection"
+      d: "Reject the card — titles are too short to drive an agent run, so the receiver must require a full spec"
+    correct: "b"
+    explanation: |
+      An inbound event is data, never authorization: the receiver filters,
+      extracts context as data, and shells out to programmatic mode; the triage
+      data itself must never authorize the write, and no prompt or command is
+      constructed from untrusted card content (guide/workflows/event-driven-agents.md,
+      Core Concept and Guardrails). A valid webhook signature authenticates the
+      SOURCE, not the content (option a). Option c is security-by-blocklist —
+      keyword stripping is not a boundary; payload-derived prompts are
+      forbidden outright. The run itself gets a human-reviewed PR as the only
+      write path back to main, --worktree per event, and pre_tool hooks that
+      load from the trusted project root even headless.
+    doc_reference:
+      file: "guide/workflows/event-driven-agents.md"
+      section: "Guardrails"
+      anchor: "#guardrails"

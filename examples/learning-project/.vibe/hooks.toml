@@ -1,0 +1,11 @@
+# Vibe project hook configuration. Loaded only when this project root is
+# trusted. See the learning-path guide module 06 for the wire protocol.
+
+[[hooks]]
+name = "release-guard"
+type = "pre_tool"
+match = "bash"
+command = "node .vibe/hooks/release-guard.mjs"
+timeout = 5
+strict = true
+description = "Deny npm publish and docker push commands until release evidence is reviewed."

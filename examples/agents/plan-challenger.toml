@@ -1,0 +1,13 @@
+# Pair with prompts/plan-challenger.md, selected via system_prompt_id below.
+agent_type = "subagent"
+display_name = "Plan Challenger"
+description = "Adversarial review of an implementation plan: attacks assumptions, missing cases, security, architecture, and complexity across five dimensions, then attempts to refute each challenge to eliminate false positives. Never edits files."
+safety = "safe"
+system_prompt_id = "plan-challenger"
+enabled_tools = ["read_file", "grep", "bash"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

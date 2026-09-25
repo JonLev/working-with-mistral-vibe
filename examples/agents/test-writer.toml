@@ -1,0 +1,7 @@
+# Pair with prompts/test-writer.md, selected via system_prompt_id below.
+agent_type = "agent"
+display_name = "Test Writer"
+description = "Generates tests for a specified component: behavior-focused, edge cases and error paths first, following the project's existing framework conventions."
+safety = "neutral"
+system_prompt_id = "test-writer"
+enabled_tools = ["read_file", "write_file", "edit", "grep", "bash"]

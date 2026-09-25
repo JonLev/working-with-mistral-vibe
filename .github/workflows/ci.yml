@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install markdownlint-cli2
+        run: npm install -g markdownlint-cli2
+
+      - name: Quality gates (links, claude-term, frontmatter, markdown lint)
+        run: bash scripts/gates/all.sh
+
+      - name: Generator drift (llms.txt, llms-full.txt, reference.yaml, vibe-guide.md)
+        run: |
+          python3 scripts/generate-llms.py --check
+          python3 scripts/generate-reference.py --check
+          python3 scripts/generate-monolith.py --check
+
+      - name: MCP server (content sync + tests)
+        run: |
+          node mcp-server/scripts/sync-content.mjs --check
+          cd mcp-server && npm ci && npm test
+
+      - name: Quiz validator
+        run: python3 scripts/validate-quiz.py
+
+      - name: Version sync
+        run: scripts/sync-version.sh --check
+
+      - name: Gate selftest (fixtures must fail the gates)
+        run: bash scripts/gates/selftest.sh
+
+      # Warning, not a gate: content staleness is not a build failure. The
+      # step exits non-zero when a vibe CLI release newer than the guide's
+      # documented surface exists; continue-on-error keeps CI green and the
+      # annotation records the re-verification debt. See
+      # docs/workflows/re-verification.md.
+      - name: Release drift (warning — vibe CLI vs guide banners)
+        run: scripts/check-vibe-release.sh
+        continue-on-error: true

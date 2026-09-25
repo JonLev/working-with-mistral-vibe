@@ -1,0 +1,6 @@
+.vibe
+.git
+evidence
+node_modules
+test
+*.tgz

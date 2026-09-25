@@ -1,0 +1,7 @@
+# Pair with prompts/refactoring-specialist.md, selected via system_prompt_id below.
+agent_type = "agent"
+display_name = "Refactoring Specialist"
+description = "Behavior-preserving refactoring: SOLID principles, code-smell cleanup, small verifiable steps with tests run between each change."
+safety = "neutral"
+system_prompt_id = "refactoring-specialist"
+enabled_tools = ["read_file", "write_file", "edit", "grep", "bash"]

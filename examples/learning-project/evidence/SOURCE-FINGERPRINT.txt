@@ -1,0 +1,11 @@
+Proofpack source fingerprint
+
+Algorithm: SHA-256 over the `shasum -a 256` output of every file under
+examples/learning-project, sorted by path. PROOF-LOG.md and this file are
+excluded to avoid a self-reference.
+
+Digest: fa83f88b1587872baa80c78f392eec15f963cc1e79bad73ec3fafa4913df5929
+
+Reproduce from the repository root that contains this file:
+
+find examples/learning-project -type f ! -name PROOF-LOG.md ! -name SOURCE-FINGERPRINT.txt -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256

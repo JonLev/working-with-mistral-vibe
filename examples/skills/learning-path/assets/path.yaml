@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "review_intervals_days": [1, 3, 7, 14, 30, 60, 90],
+  "tracks": {
+    "Beginner": {
+      "description": "Reach a safe, useful first daily workflow.",
+      "modules": ["module-01", "module-02", "module-03"]
+    },
+    "Practitioner": {
+      "description": "Build reusable project-level workflows.",
+      "modules": ["module-01", "module-02", "module-03", "module-04", "module-05"]
+    },
+    "Production": {
+      "description": "Add automation, verification, and operational controls.",
+      "modules": ["module-01", "module-02", "module-03", "module-04", "module-05", "module-06", "module-07"]
+    },
+    "Maintainer": {
+      "description": "Maintain a shared Vibe practice and its safeguards.",
+      "modules": ["module-01", "module-02", "module-03", "module-04", "module-05", "module-06", "module-07"]
+    }
+  },
+  "modules": [
+    {
+      "id": "module-01",
+      "title": "Installation and First Run",
+      "track": "Beginner",
+      "guide": "guide/learning-path/01-installation.md",
+      "exercise": "guide/learning-path/01-installation.md#exercise-1-confirm-the-install",
+      "prerequisites": []
+    },
+    {
+      "id": "module-02",
+      "title": "The Core Loop",
+      "track": "Beginner",
+      "guide": "guide/learning-path/02-core-loop.md",
+      "exercise": "guide/learning-path/02-core-loop.md#exercise-1--run-the-loop-end-to-end-15-min",
+      "related": ["guide/core/architecture.md"],
+      "prerequisites": ["module-01"]
+    },
+    {
+      "id": "module-03",
+      "title": "Memory and Config",
+      "track": "Beginner",
+      "guide": "guide/learning-path/03-memory.md",
+      "exercise": "guide/learning-path/03-memory.md#exercise-1--your-first-project-agentsmd",
+      "related": ["guide/core/memory-systems.md"],
+      "prerequisites": ["module-02"]
+    },
+    {
+      "id": "module-04",
+      "title": "Agents & Specialization",
+      "track": "Practitioner",
+      "guide": "guide/learning-path/04-agents.md",
+      "exercise": "guide/learning-path/04-agents.md#exercise-1-cycle-the-built-ins",
+      "related": ["guide/core/agents-and-skills-reference.md"],
+      "prerequisites": ["module-03"]
+    },
+    {
+      "id": "module-05",
+      "title": "Skills",
+      "track": "Practitioner",
+      "guide": "guide/learning-path/05-skills.md",
+      "exercise": "guide/learning-path/05-skills.md#exercise-1-build-a-review-skill-and-load-it",
+      "related": ["guide/core/skill-design-patterns.md"],
+      "prerequisites": ["module-04"]
+    },
+    {
+      "id": "module-06",
+      "title": "Hooks and Events",
+      "track": "Practitioner",
+      "guide": "guide/learning-path/06-hooks.md",
+      "exercise": "guide/learning-path/06-hooks.md#exercise-1-build-a-pre_tool-deny-guard",
+      "related": ["guide/core/hooks-events-reference.md"],
+      "prerequisites": ["module-05"]
+    },
+    {
+      "id": "module-07",
+      "title": "Advanced Orchestration",
+      "track": "Production",
+      "guide": "guide/learning-path/07-advanced.md",
+      "exercise": "guide/learning-path/07-advanced.md#exercise-1-watch-the-fork-join-run",
+      "related": ["guide/core/loop-graph-engineering.md"],
+      "prerequisites": ["module-06"]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+# Stage 1 of the cyber-defense pipeline. Pair with prompts/log-ingestor.md,
+# selected via system_prompt_id below. Spawned by the parent session with the
+# task tool; returns the events JSON as its final message and writes nothing.
+# active_model = "local" is the cheap mechanical tier (devstral on the builtin
+# llamacpp provider); delete the line to fall back to the default model.
+agent_type = "subagent"
+display_name = "Log Ingestor"
+description = "Parse raw log files into structured security events. First stage of the cyber-defense pipeline: classifies each line by event type, extracts timestamps, source IPs and services, and returns the events JSON in its final message. Read-only, no analysis."
+safety = "safe"
+system_prompt_id = "log-ingestor"
+active_model = "local"
+enabled_tools = ["read_file", "grep"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

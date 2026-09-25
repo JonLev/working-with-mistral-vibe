@@ -1,0 +1,363 @@
+category: "Security and Production"
+category_id: 7
+
+questions:
+  - id: "sp-001"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You clone an unfamiliar repository and open it with Vibe. The trust prompt appears and you decline. What does the session run with?"
+    options:
+      a: "No tools at all — a declined trust prompt puts the session in read-only emergency mode"
+      b: "Project configuration ignored: no project config, skills, hooks, or repo AGENTS.md from that root — but the session still has its tools, the cwd remains writable, and user-level config still loads"
+      c: "Only the file tools — bash and web tools are disabled until the folder is trusted"
+      d: "A warning is printed and the session exits; you must re-run with --trust or move the folder into trusted_folders.toml"
+    correct: "b"
+    explanation: |
+      Declining persists the cwd into the untrusted array and the session runs
+      with project config ignored: untrusted roots contribute no project
+      .vibe/config.toml, hooks, skills, plugins, agents, or repo AGENTS.md
+      (PART-TRUST sections 3.2, 3.5). The cwd remains writable and user-level
+      ~/.vibe config always loads, so tools work normally — option a and c
+      confuse the config gate with a tool gate. Option d describes the
+      programmatic-mode warning, not an exit; interactively the session just
+      continues without the project layer.
+    doc_reference:
+      file: "guide/security/security-hardening.md"
+      section: "3.3 Repo-borne config: the trust gate is the defense"
+      anchor: "#33-repo-borne-config-the-trust-gate-is-the-defense"
+
+  - id: "sp-002"
+    difficulty: "junior"
+    profiles: ["junior", "senior"]
+    question: "You run 'vibe --trust' in a fresh clone. The next day you open the same folder and get the trust prompt again. Why?"
+    options:
+      a: "--trust only lasts 24 hours; after that the folder must be re-trusted"
+      b: "The trust prompt is shown for every session regardless of prior decisions"
+      c: "--trust grants session-only, in-memory trust — trusted_folders.toml is never modified by it"
+      d: "The prompt reappears because the clone has no AGENTS.md or .vibe/ directory, so trust cannot be recorded"
+    correct: "c"
+    explanation: |
+      --trust (and --worktree, which bundles it) grants session trust through an
+      in-memory list only; trusted_folders.toml is not modified, so the next
+      session finds the folder still undecided and prompts again (PART-TRUST
+      section 3.3). The prompt is offered only when the cwd is undecided AND
+      has trustable files (options b and d). Persistent trust comes from
+      answering the prompt with trust-repo or trust-cwd, which writes the
+      resolved absolute path into the trusted array — there is no 24-hour rule
+      (option a).
+    doc_reference:
+      file: "guide/security/security-hardening.md"
+      section: "3.3 Repo-borne config: the trust gate is the defense"
+      anchor: "#33-repo-borne-config-the-trust-gate-is-the-defense"
+
+  - id: "sp-003"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "A CI job runs 'vibe -p \"fix the failing test\"' in the repo without --trust. The repo ships a .vibe/config.toml with a carefully reviewed bash allowlist. What does the run use?"
+    options:
+      a: "The project allowlist, because CI checkouts are trusted implicitly"
+      b: "The project allowlist plus a warning, since the job is headless and cannot answer a prompt"
+      c: "Defaults only — an untrusted cwd prints a warning to stderr that the project configuration will be ignored, and the run proceeds without any of the committed .vibe/ rules"
+      d: "The run fails immediately with a trust error before the prompt is even processed"
+    correct: "c"
+    explanation: |
+      In programmatic mode an untrusted cwd prints
+      'Warning: <cwd> is not trusted; project configuration (<files>) will be
+      ignored. Re-run with --trust to trust this folder temporarily.' and the
+      run proceeds on defaults only (PART-TRUST section 3.4; live-verified on
+      2.25.7, T6: the project allowlist was not loaded and the
+      approval-requiring command was denied). The committed guardrails do
+      nothing unless the job passes --trust — that is why the CI recipes always
+      pair -p with --trust. There is no implicit CI trust (option a), no
+      half-loaded config (option b), and no hard failure (option d): the run
+      continues, just without your rules.
+    doc_reference:
+      file: "guide/security/production-safety.md"
+      section: "Headless runs and CI safety"
+      anchor: "#headless-runs-and-ci-safety-stable"
+
+  - id: "sp-004"
+    difficulty: "senior"
+    profiles: ["junior", "senior", "power", "pm"]
+    question: "A headless run 'vibe --trust --agent ask -p \"run: touch /tmp/probe.txt\"' finishes. The file /tmp/probe.txt does not exist. What happened?"
+    options:
+      a: "The agent classified touch as destructive and refused; nothing was denied by the harness"
+      b: "The approval-requiring call was auto-DENIED — programmatic mode never prompts, so the callback was denied and the effect was cancelled, not executed"
+      c: "The agent never called the tool because ask_user_question is force-disabled in -p mode"
+      d: "The run ran out of turns before reaching the command"
+    correct: "b"
+    explanation: |
+      In -p mode the session runs headless and every approval or user-input
+      callback is auto-denied — never silently approved; a live 2.25.0 run with
+      exactly this shape showed effect status cancelled and no file created
+      (PART-CLI, live verification; PART-TRUST section 3.4). This is the
+      security property that makes headless runs conservative by default: a
+      runaway CI run cannot approve its way into new capabilities. Option c
+      confuses two force-disabled tools: ask_user_question and exit_plan_mode
+      are disabled so the session cannot block on input — they say nothing
+      about bash. A read-only command like 'echo hello' under the same agent
+      still runs, because bash safety classification approves safe commands
+      before the agent approval gate — which is why option a is wrong: the
+      harness denied it, the agent did not decline it.
+    doc_reference:
+      file: "guide/security/production-safety.md"
+      section: "Headless runs and CI safety"
+      anchor: "#headless-runs-and-ci-safety-stable"
+
+  - id: "sp-005"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A pre_tool hook guards bash against 'rm -rf'. The guard script crashes with a Python traceback on every invocation. The hook entry has no 'strict' key. What happens when the agent runs 'rm -rf /tmp/junk'?"
+    options:
+      a: "The call is denied — a crashed hook is treated as a deny so security is preserved"
+      b: "The call proceeds with a UI warning — hooks fail open by default, so a broken guard still lets the tool run"
+      c: "The call hangs until the 60-second hook timeout, then the tool runs"
+      d: "The whole session aborts with a hook configuration error"
+    correct: "b"
+    explanation: |
+      Hooks fail open by default (strict = false): any failure — non-zero
+      exit, timeout, spawn failure, or non-conforming stdout — emits a UI
+      warning and lets the gated action proceed (PART-HOOKS section 3.3;
+      live-verified on 2.25.7, T3: a crashed guard let the command run). A
+      security hook without strict = true is a false guard. With strict = true
+      the same crash denies the call (T2) — that is the fix, not option a's
+      invented default. A crash is an immediate failure, not a timeout (option
+      c), and hook failures never abort the session (option d).
+    doc_reference:
+      file: "guide/security/production-safety.md"
+      section: "The canonical guard"
+      anchor: "#the-canonical-guard-both"
+
+  - id: "sp-006"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A teammate writes a guard that denies by exiting with code 2 and printing nothing. The hook runs, the tool call goes through, and the UI shows a warning. What went wrong?"
+    options:
+      a: "Exit code 2 means 'block' only for pre_tool hooks; the teammate's hook is a post_tool hook"
+      b: "There is no exit-code blocking convention in Vibe — deny is stdout JSON with exit 0, and a non-zero exit is a hook FAILURE that fails open"
+      c: "The hook needed 'strict = true' to make exit code 2 mean deny"
+      d: "The guard printed its JSON to stderr instead of stdout, so the decision was never parsed"
+    correct: "b"
+    explanation: |
+      The deny contract is a JSON object on stdout with exit 0: decision deny
+      plus reason. A non-zero exit is a hook failure, and failure warns (or,
+      under strict, denies) — it is not itself a decision (PART-HOOKS section
+      3.3). Option a invents a per-type exit-code semantic that does not exist
+      for any of the three types. Option c is the nearby truth misapplied:
+      strict escalates failures to denial, but it cannot turn exit code 2 into
+      a structured deny with a reason — the guard still needs to print the JSON.
+      Option d would also be a bug, but it is not what the scenario describes —
+      the guard printed nothing at all.
+    doc_reference:
+      file: "guide/security/security-hardening.md"
+      section: "4.3 Hooks: three events, a JSON contract, and fail-open by default"
+      anchor: "#43-hooks-three-events-a-json-contract-and-fail-open-by-default"
+
+  - id: "sp-007"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "You want an audit trail of every tool call, including the ones a pre_tool guard denied. You register only a post_tool logger. What does your log miss, and why?"
+    options:
+      a: "Nothing — post_tool fires for every tool call in the turn, denied or not"
+      b: "It misses pre_tool denials, permission-never skips, user declines, and cancellations before the body started — post_tool fires if and only if the tool body actually ran"
+      c: "It misses only subagent tool calls, which run in child sessions the parent's hooks cannot see"
+      d: "It misses denied calls, and the only fix is a post_agent hook, which sees every effect in the turn"
+    correct: "b"
+    explanation: |
+      post_tool fires iff the tool body ran (tool_status success, failure, or
+      cancelled); it does not fire on a pre_tool denial, a user denial at the
+      approval prompt, a permission NEVER skip, or cancellation before the body
+      started (PART-HOOKS section 1). To capture denials, add a pre_tool hook
+      on the same pattern — it sees tool_name and tool_input before execution
+      (PART-HOOKS section 3.2). Subagents inherit the parent's hook config and
+      their payloads carry parent_session_id, so option c is wrong, and
+      post_agent fires once per turn with no tool fields at all (option d).
+    doc_reference:
+      file: "guide/security/security-hardening.md"
+      section: "4.3 Hooks: three events, a JSON contract, and fail-open by default"
+      anchor: "#43-hooks-three-events-a-json-contract-and-fail-open-by-default"
+
+  - id: "sp-008"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "The team rule is 'never run DROP TABLE against production'. Someone adds \"psql\" to [tools.bash] denylist and calls it done. A prompt tricks the agent into 'psql -c \"DROP TABLE sessions\"'. What is the honest assessment of that guard?"
+    options:
+      a: "It works — the denylist matches the text DROP TABLE inside the command string"
+      b: "It works only if the agent runs psql with no arguments; with arguments the prefix match fails"
+      c: "It blocks this command, but only because 'psql' is the first token — bash denylists match command prefixes, so they cannot express content rules like DROP TABLE at all; the CLI deny here is a blunt instrument that also blocks legitimate runs"
+      d: "It cannot work — denylist entries must be full commands with arguments, and prefixes are ignored"
+    correct: "c"
+    explanation: |
+      Bash matching is prefix equality on parsed command parts:
+      command == pattern or startswith(pattern + ' '). 'psql' as a denylist
+      prefix therefore blocks every psql invocation — including this one — but
+      the rule that fired is the CLI prefix, not the DROP TABLE text; a
+      content-level rule needs a strict pre_tool hook, and lists cannot match
+      text inside a command (PART-PERMISSIONS section 4.4; production-safety
+      rule 2). That is why the production guide pairs the blunt CLI deny
+      (which forces the operation through a human by blocking all psql runs)
+      with a strict hook for the content match. Option a is the classic
+      misreading — DROP TABLE never appears as a command prefix. Option b
+      inverts denylist_standalone, which denies the BARE form only.
+    doc_reference:
+      file: "guide/security/production-safety.md"
+      section: "Rule 2: Database safety"
+      anchor: "#rule-2-database-safety"
+
+  - id: "sp-009"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "Live-verified on 2.25.7: a [tools.read_file] denylist on '**/secret.txt' denied the direct read — and on the next turn the agent read the same file anyway, and the canary reached the model. How, and what is the fix?"
+    options:
+      a: "The agent used the write_file tool to copy the file first — the fix is denylisting write_file too"
+      b: "The agent read it through bash ('cat secret.txt'), because cat is in the default read-only allowlist and denylists are per tool — the fix is covering the shell side too, for example [tools.bash] denylist = [\"cat\"], or disabling bash for that agent"
+      c: "The denylist was checked after the allowlist and lost — the fix is setting permission = 'never' on read_file"
+      d: "The file was loaded as a subdirectory AGENTS.md, which bypasses tool permissions — the fix is trust-gating the folder"
+    correct: "b"
+    explanation: |
+      Per-tool denylists are defense-in-depth, not file guarantees: the
+      read_file denylist blocked only read_file, and bash resolved 'cat
+      secret.txt' through its default read-only allowlist (T5,
+      live-verified on 2.25.7). The verified fix is to cover the shell path:
+      a [tools.bash] denylist prefix like 'cat' blocks every cat invocation,
+      or disable bash for the agent that must not see the file (PART-PERMISSIONS
+      sections 4.3-4.4). Option c contradicts the resolution order — the
+      denylist is checked FIRST and deny always wins, within that tool. The
+      same lesson covers writes: sed, tee, and shell redirection rewrite files
+      without passing the file-tool chain.
+    doc_reference:
+      file: "guide/security/security-hardening.md"
+      section: "4.2 The cross-tool bypass: denylists are per tool, not per file"
+      anchor: "#42-the-cross-tool-bypass-denylists-are-per-tool-not-per-file"
+
+  - id: "sp-010"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "A manager asks you to add '--max-price 5.00' to every developer's interactive vibe alias so nobody can spend more than five dollars a day. What is wrong with this plan?"
+    options:
+      a: "Nothing — --max-price interrupts the session when the cost cap is exceeded"
+      b: "The flag only works in programmatic mode with -p, so it does nothing for interactive sessions — and even in -p it bounds one run's cost; it is not a permission rule and not a daily accounting feature"
+      c: "--max-price takes cents, so 5.00 means 5 cents and the cap is far too low"
+      d: "--max-price can only be set in config.toml as a global key, not as a CLI flag"
+    correct: "b"
+    explanation: |
+      --max-price, --max-turns, and --max-tokens apply only in programmatic
+      mode with -p; there is no verified cap for unattended interactive
+      sessions, and per-day spend accounting does not exist in the CLI at all
+      (PART-CLI). Two confusions the distractors feed on: the flag IS real and
+      does interrupt a -p session when the cap is exceeded (so option a is
+      half-true but wrong for interactive use), and it takes dollars
+      (option c). Option d inverts the surface: it is a CLI flag; the per-model
+      input_price/output_price values that feed the cap live in [[models]]
+      (PART-CONFIG section 1.1).
+    doc_reference:
+      file: "guide/security/security-hardening.md"
+      section: "6.3 Kill switch"
+      anchor: "#63-kill-switch"
+
+  - id: "sp-011"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "Under the default agent, the agent edits docker-compose.yml without any prompt — but a headless run asked to read .env is denied. Why does the same default posture block one and not the other?"
+    options:
+      a: "The default agent is ask, which prompts for everything; the compose edit was covered by the session permission store"
+      b: "The default agent is accept-edits, so file edits auto-approve — but the default sensitive_patterns match .env-shaped paths and add a per-file approval, and headless there is no prompt to answer, so the read is denied"
+      c: "docker-compose.yml matched the write_file allowlist that ships by default, while .env is on the built-in read_file denylist"
+      d: "The headless run used a different agent than the interactive session — default_agent is ignored in -p mode"
+    correct: "b"
+    explanation: |
+      default_agent is accept-edits: write_file and edit are set to
+      permission always, so edits run without prompts (PART-PERMISSIONS section
+      4.1) — which is exactly why production rules add explicit deny rules for
+      infrastructure files. The .env outcome comes from the default
+      sensitive_patterns on file tools: a match adds a FILE_PATTERN permission
+      scoped to that exact file, and in -p mode approval-required calls are
+      denied, so the canary never reaches the model (live-verified on 2.25.7,
+      T7). Option d contradicts the verified semantics — default_agent applies
+      in both interactive and -p mode (PART-CLI). Option c invents a shipped
+      allowlist/denylist pair that does not exist; nothing in the defaults
+      singles out compose files.
+    doc_reference:
+      file: "guide/security/production-safety.md"
+      section: "The enforcement stack"
+      anchor: "#the-enforcement-stack-stable"
+
+  - id: "sp-012"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A team writes 'never touch production ports' into their AGENTS.md and ships nothing else. A month later an agent renames a port in docker-compose.yml and the merge breaks staging. What does the guide say went wrong?"
+    options:
+      a: "AGENTS.md rules only load in trusted folders, and the agent's session was untrusted"
+      b: "AGENTS.md is policy the model follows, not a gate the harness enforces — a rule that matters needs a deny rule in config.toml, a strict hook, or both, with AGENTS.md stating the protocol"
+      c: "The rule needed to be in the user-level ~/.vibe/AGENTS.md to override the agent's defaults"
+      d: "AGENTS.md rules are capped in length, and the port rule was truncated on injection"
+    correct: "b"
+    explanation: |
+      The enforcement stack is A (deny rules — deterministic, checked first),
+      B (strict hooks — fail-closed), C (AGENTS.md — model-followed, no harness
+      enforcement). AGENTS.md instructions are injected and marked as overriding
+      default behavior, but nothing in the harness checks compliance; pair
+      critical rules with A or B (production-safety, the enforcement stack;
+      PART-AGENTSMD). Option a is a real mechanism but not this failure — the
+      rule fired or not as policy either way. Option c is backwards for
+      priority (project beats user) and irrelevant to enforcement. There is no
+      truncation cap (option d) — the nearest true statement is the curse of
+      instructions: more instructions means worse adherence to each.
+    doc_reference:
+      file: "guide/security/production-safety.md"
+      section: "The enforcement stack"
+      anchor: "#the-enforcement-stack-stable"
+
+  - id: "sp-013"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A CI job runs 'vibe --worktree ci-fix-123 -p \"fix the flaky test\" --auto-approve'. After the run, the worktree under $VIBE_HOME/worktrees/ is still there with uncommitted changes. What is the correct reading?"
+    options:
+      a: "A bug — Vibe always removes worktrees it created once the session exits"
+      b: "Expected — programmatic runs never clean up their worktrees automatically; pruning is the job's responsibility"
+      c: "Expected, because the worktree is kept only when there are uncommitted changes or new commits; a clean run would have been removed"
+      d: "The job forgot --trust, so the worktree could not be registered for cleanup"
+    correct: "b"
+    explanation: |
+      Interactive cleanup happens on exit only when Vibe created the worktree
+      this run AND there are no uncommitted changes, no untracked files, and no
+      commits beyond the starting commit — and even then it asks when in doubt.
+      Programmatic runs (-p ... --worktree NAME) never clean up automatically;
+      the CI job prunes $VIBE_HOME/worktrees/ itself (PART-WORKTREES). Option c
+      quotes the interactive rule, which does not apply to -p runs. --worktree
+      implies session trust (option d is unrelated). The named form checks out
+      a branch named ci-fix-123; only the unnamed form uses the vibe/<name>
+      prefix.
+    doc_reference:
+      file: "guide/security/security-hardening.md"
+      section: "1. The local boundary, stated correctly"
+      anchor: "#1-the-local-boundary-stated-correctly"
+
+  - id: "sp-014"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "A privacy reviewer wants to guarantee that no session ever sends code to any host other than api.mistral.ai, purely with Vibe config. What is the honest answer?"
+    options:
+      a: "Set enable_telemetry = false and enable_otel = false — with telemetry off, only model traffic remains and it always goes to api.mistral.ai"
+      b: "Set api_base = 'https://api.mistral.ai/v1' in the user config — user TOML beats project TOML, so no repo can re-point it"
+      c: "You cannot guarantee it with config alone: every [[providers]] entry can carry any api_base, project TOML overrides user TOML for a trusted repo, MCP servers and their results add their own egress, and opt-out keys are config keys, not a single lockdown switch — control egress at the network boundary and verify with canaries"
+      d: "Set enable_system_trust_store = false — it prevents Vibe from connecting to any endpoint not in the OS trust store"
+    correct: "c"
+    explanation: |
+      Model traffic goes to the active provider's api_base, and a trusted
+      project's .vibe/config.toml overrides the user layer — providers
+      union-merge by name, so a repo you trust can redefine the mistral
+      provider's api_base and route your prompts elsewhere (PART-CONFIG
+      sections 1.1, 2.1; data-privacy section 1.4). MCP servers (any url, or a
+      stdio process with its own network access) and connectors add channels;
+      one verified guard exists — agent profiles cannot override vibe_base_url
+      or the console/sessions base URLs — but that protects three keys, not the
+      provider pipe. Option b inverts precedence: project beats user. Option a
+      stops telemetry and OTel but says nothing about providers or MCP.
+      enable_system_trust_store governs TLS verification, not destination
+      allowlisting (option d). The verified method is measurement: seed
+      canaries and read messages.jsonl.
+    doc_reference:
+      file: "guide/security/data-privacy.md"
+      section: "1.4 Config can re-point the pipe — trust decides whose"
+      anchor: "#14-config-can-re-point-the-pipe--trust-decides-whose"

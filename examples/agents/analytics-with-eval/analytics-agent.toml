@@ -1,0 +1,15 @@
+# SQL query generator with built-in evaluation. Pair with
+# prompts/analytics-agent.md, selected via system_prompt_id below.
+# Generates queries in the response; never executes them, never writes files.
+agent_type = "agent"
+display_name = "Analytics Agent"
+description = "SQL query generator with built-in evaluation and safety checks: reads schema with read-only tools, generates annotated SELECT queries, refuses destructive operations without explicit confirmation, and explains join, filter and index reasoning."
+safety = "safe"
+system_prompt_id = "analytics-agent"
+enabled_tools = ["read_file", "grep"]
+
+[tools.write_file]
+permission = "never"
+
+[tools.edit]
+permission = "never"

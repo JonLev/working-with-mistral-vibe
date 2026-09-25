@@ -1,0 +1,9 @@
+# Pair with prompts/security-patcher.md, selected via system_prompt_id below.
+# Needs a security-auditor report as input; proposes each patch and waits
+# for approval (safety = "neutral" keeps file writes behind the approval gate).
+agent_type = "agent"
+display_name = "Security Patcher"
+description = "Applies patches for security-auditor findings, one finding at a time, after verifying each against the code. Proposes every patch and applies it only after explicit confirmation."
+safety = "neutral"
+system_prompt_id = "security-patcher"
+enabled_tools = ["read_file", "write_file", "edit", "grep"]

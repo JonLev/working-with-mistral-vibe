@@ -1,0 +1,311 @@
+category: "Architecture and Internals"
+category_id: 1
+
+questions:
+  - id: "ar-001"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A teammate asks what sits between your prompt and the model in the Vibe CLI — a router, a planner, or a retrieval layer? What is the verified answer?"
+    options:
+      a: "Nothing: the model reasons directly over the assembled context, and the harness is a loop that executes tool calls and feeds results back"
+      b: "A classifier first routes each prompt to the right subagent"
+      c: "A planner decomposes the prompt into steps before the model sees it"
+      d: "A retrieval pipeline fetches relevant files and injects them before the model runs"
+    correct: "a"
+    explanation: |
+      The verified architecture has no classifier, routing layer, or planner in
+      front of the loop: the model reasons over context, tool calls execute and
+      feed results back, and a text response ends the turn (PART-CLI;
+      guide/core/architecture.md, "The master loop"). The distractors describe
+      harness designs the oracle explicitly rules out for Vibe — the model
+      itself decides decomposition and tool use, and there is no verified
+      retrieval pipeline in front of the loop.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "The master loop"
+      anchor: "#1-the-master-loop"
+
+  - id: "ar-002"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "You run vibe -p \"deploy the site\" with no --agent flag and the default agent. The model issues a bash call that would normally require approval. What happens?"
+    options:
+      a: "The call is auto-approved so the headless run does not stall"
+      b: "The call is auto-DENIED (effect status cancelled) and never executes"
+      c: "The run pauses and waits for someone to answer the approval prompt"
+      d: "The call is queued and executed the next time an interactive session opens"
+    correct: "b"
+    explanation: |
+      Live verification on 2.25.0 (PART-CLI, "Programmatic mode approval
+      semantics") shows approval-required tool calls in -p mode are auto-DENIED
+      with effect status cancelled — programmatic mode never prompts, so there
+      is nothing to answer; a pending queue for later interactive sessions does
+      not exist. The tempting distractor (a) matches an incorrect docs claim
+      that -p "falls back to auto-approve"; the README and --help are right that
+      approval follows the selected agent or default_agent, and anything that
+      would prompt is denied. To let the call through headless, allowlist it in
+      config or pass --auto-approve/--yolo.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Programmatic mode"
+      anchor: "#6-programmatic-mode"
+
+  - id: "ar-003"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "Same headless run, but now with --agent ask: vibe --trust --agent ask -p \"Use the bash tool to run exactly: echo hello\". What is the observed outcome?"
+    options:
+      a: "The command is denied — the ask agent requires approval for every tool execution"
+      b: "The command runs, because bash safety classification approves safe commands before the agent approval gate is consulted"
+      c: "The command is denied, because programmatic mode force-disables the bash tool"
+      d: "The run errors out at startup — --agent ask cannot be combined with -p"
+    correct: "b"
+    explanation: |
+      This exact test ran on 2.25.0 (PART-CLI, test 3): echo hello executed
+      successfully under --agent ask. Read-only bash commands auto-approve
+      regardless of the approval-requiring agent, because bash safety
+      classification (PART-PERMISSIONS section 4.4) is consulted before the
+      agent approval gate. Distractor (a) is the plausible half-truth: ask does
+      require approval for tool executions, but only for calls the permission
+      system has not already auto-approved — the same live test series showed a
+      gated touch command was cancelled while echo ran. --agent is honored in -p
+      mode, so (d) is also wrong.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Programmatic mode"
+      anchor: "#6-programmatic-mode"
+
+  - id: "ar-004"
+    difficulty: "senior"
+    profiles: ["senior", "power", "pm"]
+    question: "You want to bound the cost of an unattended nightly run. Which statement about --max-price is verified?"
+    options:
+      a: "It caps the cost of any session, interactive or programmatic"
+      b: "It bounds a programmatic (-p) run: the session is interrupted when cost exceeds the limit"
+      c: "It denies any single tool call whose estimated cost exceeds the limit"
+      d: "It sets a per-turn spending limit; the session continues on the next turn"
+    correct: "b"
+    explanation: |
+      --max-price DOLLARS (with --max-turns and --max-tokens) applies only in
+      programmatic mode with -p, and the session is interrupted when the limit
+      is exceeded (PART-CLI, the vibe --help transcript). It is not an
+      interactive-session cap and not a per-tool-call or per-turn gate — those
+      mechanisms do not exist in the verified surface. For interactive budget
+      discipline the verified levers are different: compaction triggers and
+      manual /compact (PART-SESSIONS section 4).
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Programmatic mode"
+      anchor: "#6-programmatic-mode"
+
+  - id: "ar-005"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A colleague says \"Vibe's context window is 200,000 tokens — I read it in the config defaults.\" What is wrong with that statement?"
+    options:
+      a: "Nothing — auto_compact_threshold is the model's context window, set to 200,000 by default"
+      b: "The default is 100,000, not 200,000"
+      c: "auto_compact_threshold is a compaction trigger, not a context window — 200,000 is the global default at which compaction runs, and per-model values can differ"
+      d: "auto_compact_threshold is the maximum number of tool calls per turn"
+    correct: "c"
+    explanation: |
+      PART-SESSIONS section 4.1: auto_compact_threshold is a config key with
+      global default DEFAULT_AUTO_COMPACT_THRESHOLD = 200_000; before every
+      turn, if threshold > 0 and context_tokens >= threshold, compaction runs.
+      It is tunable per model (live meta.json showed user-added models at
+      800000 and 256000) and 0 disables auto-compaction — a fixed product
+      constant or a model context window it is not. The oracle records no
+      context window figure for the default model at all, so (a) infers
+      something the documentation never states.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Compaction: a tunable trigger, not a fixed window"
+      anchor: "#compaction-a-tunable-trigger-not-a-fixed-window"
+
+  - id: "ar-006"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "With auto_compact_threshold at its default, a user sees a one-time warning mid-session at roughly 100,000 context tokens and assumes compaction already ran. What actually happened?"
+    options:
+      a: "Compaction ran — 50% of the threshold is the compaction trigger"
+      b: "Compaction ran, but only the oldest conversation round was summarized"
+      c: "Nothing compacted: a middleware warns once per session when context reaches 50% of the threshold; compaction triggers at the threshold itself, before a turn"
+      d: "The warning repeats every turn until the user runs /compact"
+    correct: "c"
+    explanation: |
+      Two middlewares are in play (PART-SESSIONS section 4.1):
+      ContextWarningMiddleware warns once per session at 50% of the threshold
+      by injecting a vibe_warning, and AutoCompactMiddleware triggers
+      compaction before every turn only when context_tokens >= threshold. So
+      the warning is an early signal, not the trigger, and it fires once per
+      session, not every turn. The 50% figure is relative to the compaction
+      threshold — which is itself tunable per model — so it is not a window
+      boundary either.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Compaction: a tunable trigger, not a fixed window"
+      anchor: "#compaction-a-tunable-trigger-not-a-fixed-window"
+
+  - id: "ar-007"
+    difficulty: "junior"
+    profiles: ["junior", "senior", "pm"]
+    question: "A subagent's task prompt tells it to \"spawn a second explore subagent for the frontend half.\" What happens when it tries?"
+    options:
+      a: "A nested subagent launches — depth is limited only by config"
+      b: "The task tool raises a ToolError: \"Agent depth limit of 1 reached. Complete the task in the current subagent.\""
+      c: "The request is forwarded to the parent, which spawns the second subagent transparently"
+      d: "The second subagent launches but its result goes directly to the user, bypassing the parent"
+    correct: "b"
+    explanation: |
+      The depth limit is 1: if the active profile is itself a subagent, the
+      task tool raises exactly that ToolError — subagents cannot spawn
+      subagents, ever (PART-AGENTS section 9). There is no verified
+      forwarding mechanism to the parent, and no config key raises the depth
+      in the documented surface. The practical consequence is hub-and-spoke:
+      if two workers would need to talk to each other, the decomposition is
+      wrong and the shared step belongs in the parent.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Depth 1 means hub-and-spoke, explicitly"
+      anchor: "#depth-1-means-hub-and-spoke-explicitly"
+
+  - id: "ar-008"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "Worker subagent A returns a finding. You now want worker subagent B to build on it. What must you do?"
+    options:
+      a: "Give B a task string that quotes A's finding — the child never sees A's work, only the text the parent passes"
+      b: "Ask B to \"read the previous subagent's transcript\" — children share the session store"
+      c: "Name A in B's task; Vibe links sibling subagent sessions automatically"
+      d: "Nothing — B inherits the parent's context, which already contains A's finding"
+    correct: "a"
+    explanation: |
+      The child receives only the task string (plus the parent's scratchpad
+      prefix) and returns a text-only TaskResult(response, turns_used,
+      completed) (PART-AGENTS section 9). Context is never inherited
+      automatically and subagents share no conversational state, so (d) and
+      (c) describe mechanisms that do not exist. Sibling subagents do not see
+      each other's sessions; results chain through the parent, which is why
+      the depth-1 model is called hub-and-spoke explicitly.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Depth 1 means hub-and-spoke, explicitly"
+      anchor: "#depth-1-means-hub-and-spoke-explicitly"
+
+  - id: "ar-009"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "In a headless run you pass --enabled-tools 'bash*'. What is the resulting tool surface?"
+    options:
+      a: "The bash tools are enabled in addition to the default set"
+      b: "Only tools matching the pattern are active — every other tool is disabled"
+      c: "All tools remain enabled but non-matching tools require approval"
+      d: "Only the exact tool named bash is enabled; the pattern is treated as a literal string"
+    correct: "b"
+    explanation: |
+      In programmatic mode, --enabled-tools disables all other tools; patterns
+      can be exact names, glob patterns, or regex with a re: prefix, and
+      --disabled-tools subtracts after the enabled-tools filtering (PART-CLI,
+      the vibe --help transcript). So bash* enables the bash tools and drops
+      everything else — it is a narrowing allowlist, not an addition. Option
+      (d) is the plausible confusion: bare strings are literal, but the glob
+      bash* is a pattern, and the same matcher syntax (fnmatch glob or re:)
+      is used in config enabled_tools (PART-CONFIG section 1.3).
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "The tool surface"
+      anchor: "#2-the-tool-surface"
+
+  - id: "ar-010"
+    difficulty: "power"
+    profiles: ["power"]
+    question: "An explore subagent run finishes. Where is its session recorded, and what does it share with the parent?"
+    options:
+      a: "It is not persisted — subagent runs are ephemeral and vanish with the turn"
+      b: "A fresh session under ~/.vibe/logs/session/ at the top level, with its own permission store"
+      c: "A child session with a fresh ID and parent_session_id set, logged under the parent session dir's agents/ subdirectory, inheriting the parent's permission store"
+      d: "A child session that shares the parent's session ID and messages.jsonl"
+    correct: "c"
+    explanation: |
+      create_child(parent, agent_name) gives the child a fresh session ID,
+      is_subagent = true, parent_session_id set, a persisted and resumable
+      log under the parent session dir in agents/ with the agent name as
+      prefix, and share_permissions = true — it inherits the parent's
+      permission store (PART-AGENTS section 9). Subagent runs are not
+      ephemeral, and they never share the parent's session ID or transcript;
+      the parent only receives the text-only TaskResult.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Isolation model"
+      anchor: "#isolation-model"
+
+  - id: "ar-011"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A CI job runs vibe --worktree nightly. The next morning, an interactive session in that same checkout shows the trust prompt again. Why?"
+    options:
+      a: "A bug — worktree trust should persist in trusted_folders.toml"
+      b: "--worktree grants session-only, in-memory trust so the nightly run skips the prompt; nothing is written to the trust store, so each new session decides again"
+      c: "Worktrees are trusted only while a git branch named after the prompt exists"
+      d: "The trust prompt reappears because worktrees are always untrusted by design"
+    correct: "b"
+    explanation: |
+      --trust and --worktree grant session trust through an in-memory list —
+      trusted_folders.toml is not modified (PART-TRUST section 3.3;
+      PART-CLI). The worktree is implicitly trusted for the session so every
+      new worktree does not re-prompt mid-run, but the grant evaporates with
+      the process. Persistent trust requires an explicit trust decision
+      (trust_repo or trust_cwd at the interactive prompt) that writes to
+      trusted_folders.toml (PART-TRUST sections 3.1-3.2).
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Trust: the actual local boundary"
+      anchor: "#trust-the-actual-local-boundary"
+
+  - id: "ar-012"
+    difficulty: "senior"
+    profiles: ["senior", "power"]
+    question: "A user sets bypass_tool_permissions = true in config. What does the tool gate do on the next tool call?"
+    options:
+      a: "It executes everything with no per-call checks — the bypass is checked first, before permission resolution"
+      b: "It still consults each tool's resolve_permission first; the bypass only overrides the final prompt"
+      c: "It executes everything but logs each call for audit"
+      d: "It prompts once per session for confirmation, then executes everything"
+    correct: "a"
+    explanation: |
+      The gate is ordered (PART-PERMISSIONS section 4.2):
+      bypass_tool_permissions is checked first, and when set, every tool call
+      executes with no per-call checks at all. The bypass is what the
+      auto-approve profile sets and what --auto-approve forces, and there is
+      no verified once-per-session confirmation or audit log step. Because the
+      bypass short-circuits the whole chain, allowlists, denylists, and
+      sensitive patterns on file and bash tools are all skipped — worth
+      knowing before setting the key by hand.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "The tool gate"
+      anchor: "#the-tool-gate"
+
+  - id: "ar-013"
+    difficulty: "power"
+    profiles: ["senior", "power"]
+    question: "You started a session inside a --worktree checkout yesterday and want to continue it today from the main repository checkout. What works?"
+    options:
+      a: "vibe -c — the continue flag finds sessions regardless of directory"
+      b: "vibe --resume <SESSION_ID> — resume by ID is a global lookup with no directory filter, while -c and the picker are folder-scoped"
+      c: "Nothing — sessions are locked to the directory where they started"
+      d: "Copy the worktree's session directory into the main checkout's logs, then run vibe -c"
+    correct: "b"
+    explanation: |
+      -c and the /resume picker are folder-scoped: a worktree sees only
+      sessions started inside it. --resume <SESSION_ID> resolves by ID
+      globally with no working-directory filter, and partial IDs are
+      supported (PART-SESSIONS sections 3.2-3.3; PART-WORKTREES). Option (c)
+      overstates the scoping — the session is findable from either directory
+      by ID, and a moved session even matches -c from both its origin and
+      current working directory, but a different checkout needs the explicit
+      ID. Manual copying of session directories is not a verified mechanism.
+    doc_reference:
+      file: "guide/core/architecture.md"
+      section: "Resume semantics"
+      anchor: "#resume-semantics"

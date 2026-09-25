@@ -1,0 +1,15 @@
+# Vibe subagent definition. The file stem is the agent name; the model
+# reaches it through the task tool, and it cannot be selected with --agent.
+
+agent_type = "subagent"
+display_name = "Evidence reviewer"
+description = "Read-only reviewer that checks Proofpack release claims against retained evidence."
+safety = "safe"
+system_prompt_id = "evidence-reviewer"
+
+# Read-only profile: only read_file and grep are enabled, and write_file is
+# explicitly denied.
+enabled_tools = ["read_file", "grep"]
+
+[tools.write_file]
+permission = "never"

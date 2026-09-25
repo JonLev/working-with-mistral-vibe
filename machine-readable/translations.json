@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "description": "Registry of community language adaptations of the guide. Policy: guide/translations.md. English is the only maintained edition; entries here are provenance records, not endorsements.",
+    "schema": {
+      "adaptations[]": {
+        "language": "ISO 639-1 code",
+        "title": "project title",
+        "url": "public URL of the adaptation",
+        "guide_version": "VERSION the adaptation was produced from",
+        "source_sha": "commit SHA of this repository at adaptation time",
+        "coverage": "declared coverage, as the adaptation states it",
+        "maintainer": "who maintains it",
+        "listed_at": "YYYY-MM-DD date the entry was added"
+      }
+    },
+    "maintained_by": "guide maintainers",
+    "policy": "guide/translations.md"
+  },
+  "canonical": {
+    "language": "en",
+    "note": "guide/ in this repository is the only maintained edition"
+  },
+  "adaptations": []
+}
