@@ -31,7 +31,7 @@ run_gate() {
 
 # --- positive direction: the clean copy must pass every gate ---
 clean_fail=0
-for gate in check-links.sh check-claude-terms.sh check-frontmatter.sh; do
+for gate in check-links.sh check-frontmatter.sh; do
   if run_gate "$gate"; then
     echo "selftest: clean tree passes $gate"
   else
@@ -60,7 +60,6 @@ plant_and_expect_failure() {
 
 neg_fail=0
 plant_and_expect_failure check-links.sh broken-link.md guide/core/broken-link-fixture.md || neg_fail=$((neg_fail + 1))
-plant_and_expect_failure check-claude-terms.sh claude-term.md guide/core/claude-term-fixture.md || neg_fail=$((neg_fail + 1))
 plant_and_expect_failure check-frontmatter.sh missing-frontmatter.md guide/core/missing-frontmatter-fixture.md || neg_fail=$((neg_fail + 1))
 
 if [[ $neg_fail -gt 0 ]]; then

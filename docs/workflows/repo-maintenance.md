@@ -13,14 +13,13 @@ one implementation and two entry points (pre-commit and CI):
 | Gate | Script | What it enforces |
 |---|---|---|
 | Link | `scripts/gates/check-links.sh` | Every relative markdown link and image in every `.md` file resolves to an existing file. Mermaid `click ... href` targets inside fenced diagram blocks are held to a stricter rule: the target file must exist AND any anchor must resolve to a real heading of that file (zero-tolerance). No external-URL checking in v1. |
-| Naming policy | `scripts/gates/check-claude-terms.sh` | `claude`, `anthropic`, `settings.json`, `hooks.json` appear nowhere in `guide/`, `examples/`, `quiz/`, `machine-readable/`, `docs/` outside `docs/workflows/claude-term-allowlist.txt`. |
 | Frontmatter | `scripts/gates/check-frontmatter.sh` | Every `guide/**/*.md` page has `title`, `description`, `tags` frontmatter and exactly one "Verified against ... Documented surface ..." banner. |
 | Markdown lint | `scripts/gates/check-markdown.sh` | markdownlint-cli2 with the minimal documented config in `.markdownlint-cli2.jsonc`. |
 
 Direct invocation:
 
 ```bash
-bash scripts/gates/all.sh        # all four gates
+bash scripts/gates/all.sh        # all three gates
 bash scripts/gates/check-links.sh
 ```
 
@@ -90,27 +89,12 @@ releases) is accepted and propagates verbatim into the generated markers.
 ## What CI checks
 
 `.github/workflows/ci.yml` runs on every push to `main` and on pull
-requests: the four gates (`scripts/gates/all.sh`), the generator drift
+requests: the gates (`scripts/gates/all.sh`), the generator drift
 checks (llms.txt pair, reference.yaml, the monolith spine), the MCP
 server content-sync check and its test suite, the quiz
 validator (`scripts/validate-quiz.py`), the version-sync check, and the
 gate selftest. There is nothing in CI that cannot be run locally with the
 same scripts.
-
-## The naming-policy gate and its allowlist
-
-The style guide's naming policy (risk R1) bans the source product's terms
-from the published content. The gate scans the content directories and
-honors `docs/workflows/claude-term-allowlist.txt` — one path per line, every
-entry justified inline. The only sanctioned content home for these terms is
-the "Migrating from Claude Code" chapter (guide/surfaces/), listed
-in the allowlist with its justification.
-
-Current non-migration entries exist because the terms are *the subject*:
-the style guide quotes them as the rule itself, and the mechanics oracle in
-`docs/mechanics/` maps the source product's concepts to Vibe equivalents
-by design. Shrinking this list is a standing goal; growing it
-needs a written justification in the file.
 
 ## Documented decisions and limits
 

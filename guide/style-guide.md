@@ -100,8 +100,8 @@ todo/tracker narration beyond the minimal.
   (external pejorative collision).
 - Third-party name collisions (Vibe Kanban, Agent Vibes, viberank): never
   reused or referenced as if ours.
-- Claude-term gate (CI, pre-commit): `claude`, `CLAUDE`, `anthropic`,
-  `settings.json`, `hooks.json` must appear nowhere outside attribution files.
+- The source product's terms appear only where they are the subject:
+  attribution files, the migration chapter, and literal public identifiers.
 
 ## Formatting
 

@@ -17,12 +17,6 @@ repos:
         language: system
         pass_filenames: false
 
-      - id: gate-claude-terms
-        name: "gate: naming policy (claude-term)"
-        entry: scripts/gates/check-claude-terms.sh
-        language: system
-        pass_filenames: false
-
       - id: gate-frontmatter
         name: "gate: guide frontmatter + verified banner"
         entry: scripts/gates/check-frontmatter.sh

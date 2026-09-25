@@ -48,10 +48,9 @@ content **cites the oracle by PART** —
 ## The naming policy
 
 "Vibe" only for the product; "agentic coding" for the practice; never "vibe
-coding" generically. The gate also bans another vendor's product terms from
-guide content (the one sanctioned home is the migration chapter). The full
-policy is in the [style guide](guide/style-guide.md) and enforced by
-`scripts/gates/check-claude-terms.sh` with a justified allowlist.
+coding" generically. Another vendor's product terms stay confined to
+attribution files, the migration chapter, and literal public identifiers.
+The full policy is in the [style guide](guide/style-guide.md).
 
 ## Honesty rules
 

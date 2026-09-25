@@ -36,8 +36,8 @@ checks watch. CI runs the same set plus the gate selftest.
   will not let a hand-edit survive anyway.
 - **Naming policy**: "Vibe" only for the product; "agentic coding" for the
   practice; never "vibe coding" generically. Another vendor's product terms
-  are banned from content by gate; the migration chapter is the only
-  sanctioned home (see `docs/workflows/claude-term-allowlist.txt`).
+  stay confined to attribution files, the migration chapter, and literal
+  public identifiers.
 - **Honesty over confidence**: dated claims, one verification banner per
   page, a "Known gaps" section per page; say "documented in release X.Y.Z
   (source)" vs "verified live" precisely.

@@ -121,11 +121,10 @@ test('content/ is in sync with the repo sources (sync:content:check)', () => {
 });
 
 test('no banned terms in authored mcp-server files', { concurrency: false }, async () => {
-  // The repo's naming-policy gate (scripts/gates/ at the repo root) polices
-  // guide content with its own allowlist; content/ here is a
-  // generated mirror of already-gated sources. This test polices what this
-  // package authors: src, scripts, test, and the manifests. The pattern is
-  // assembled from fragments so this file does not contain the literal terms.
+  // content/ here is a generated mirror of the guide sources. This test
+  // polices what this package authors: src, scripts, test, and the manifests.
+  // The pattern is assembled from fragments so this file does not contain the
+  // literal terms of the product the guide migrated away from.
   const banned = new RegExp(
     ['cla' + 'ude', 'anthro' + 'pic', 'settings' + '.json', 'hooks' + '.json'].join('|'),
     'i',
